@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PredictCorp — Corporate Prediction Markets</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%234F46E5'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-family='Arial'>P</text></svg>" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.8.0/Recharts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    @keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+    .toast-anim{animation:fadeIn .3s ease}
+    .live-dot{animation:pulse 1.5s infinite}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const firebaseConfig = {
+  apiKey: "AIzaSyCy7NIeGq4BQvJgwdZQYTVLJLMNJ0hec8U",
+  authDomain: "corp-pred.firebaseapp.com",
+  databaseURL: "https://corp-pred-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "corp-pred",
+  storageBucket: "corp-pred.firebasestorage.app",
+  messagingSenderId: "351439283034",
+  appId: "1:351439283034:web:ce4dfd26b3f2c87b760963"
+};
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const {useState,useEffect,useMemo,useRef} = React;
+const RC = window.Recharts || {};
+const {BarChart,Bar,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer,PieChart,Pie,Cell} = RC;
+
+/* ── Inline SVG Icons ── */
+const Icon = ({d, size=16, color="currentColor", className=""}) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d={d}/>
+  </svg>
+);
+const I = {
+  TrendingUp: (p) => <Icon {...p} d="M22 7l-8.5 8.5-5-5L2 17"/>,
+  Users: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  DollarSign: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+  Plus: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  LogIn: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>,
+  Wallet: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a1 1 0 0 0 0 4h4v-4Z"/></svg>,
+  Trophy: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+  BarChart3: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>,
+  CheckCircle: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+  X: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  Clock: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  ArrowUp: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>,
+  ArrowDown: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>,
+  Target: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+  Zap: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  AlertCircle: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+  ChevronRight: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polyline points="9 18 15 12 9 6"/></svg>,
+  Play: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+  Lock: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  Unlock: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
+  Share2: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
+  Copy: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+};
+
+const LMSR = {
+  cost(q,b=100){return b*Math.log(Math.exp(q[0]/b)+Math.exp(q[1]/b))},
+  price(q,o,b=100){const e=q.map(x=>Math.exp(x/b));return e[o]/e.reduce((a,c)=>a+c,0)},
+  buy(q,o,s,b=100){const bf=LMSR.cost(q,b);const nq=[...q];nq[o]+=s;return{newQ:nq,cost:LMSR.cost(nq,b)-bf}}
+};
+
+const CATEGORIES=["M&A","Product","Sales","Strategy","Operations","Custom"];
+const CAT_COL={"M&A":"#dc2626",Product:"#7c3aed",Sales:"#059669",Strategy:"#1e40af",Operations:"#d97706",Custom:"#0891b2"};
+const COLORS=["#1e40af","#dc2626","#059669","#7c3aed","#d97706","#0891b2"];
+const pct=n=>`${(n*100).toFixed(1)}%`;
+const fmt=n=>n>=1e6?`${(n/1e6).toFixed(1)}M`:n>=1e3?`${(n/1e3).toFixed(1)}K`:`${n}`;
+
+const SEEDS={
+  m1:{title:"Acme Corp acquisition of DataVault closes by Q3 2026",category:"M&A",q:[25,-5],deadline:"2026-09-30",creator:"Strategy Team",description:"Board approved LOI in Jan. Due diligence ongoing. Regulatory filing expected Q2.",resolved:null,trades:47,volume:4200},
+  m2:{title:"Project Atlas achieves product-market fit (>40% D90 retention)",category:"Product",q:[10,5],deadline:"2026-06-30",creator:"Product Lead",description:"Currently at 28% D90 retention. v2.3 launching March with onboarding overhaul.",resolved:null,trades:31,volume:2800},
+  m3:{title:"APAC revenue exceeds $50M this fiscal year",category:"Sales",q:[-8,12],deadline:"2026-12-31",creator:"APAC Head",description:"YTD run-rate: $38M. Pipeline strong in SG and Japan.",resolved:null,trades:22,volume:1950},
+  m4:{title:"Board approves pivot to AI-first product strategy by June",category:"Strategy",q:[30,-15],deadline:"2026-06-30",creator:"CEO Office",description:"CEO signalled AI priority at all-hands. CPO leading feasibility study.",resolved:null,trades:56,volume:5100},
+  m5:{title:"Engineering headcount exceeds 200 by year-end",category:"Operations",q:[0,8],deadline:"2026-12-31",creator:"VP Engineering",description:"Current: 156. Approved req for 60 new hires. Attrition at 12%.",resolved:null,trades:18,volume:1400},
+  m6:{title:"Series C closes at $500M+ valuation",category:"M&A",q:[15,0],deadline:"2026-08-31",creator:"CFO",description:"Term sheets from 3 VCs. Lead investor DD wrapping up.",resolved:null,trades:39,volume:3600},
+  m7:{title:"Customer NPS improves to 60+ (currently 42)",category:"Product",q:[-5,10],deadline:"2026-09-30",creator:"CX Team",description:"Key drivers: support response time and onboarding.",resolved:null,trades:15,volume:1100},
+  m8:{title:"Q2 revenue hits $18M target",category:"Sales",q:[5,3],deadline:"2026-06-30",creator:"CRO",description:"Q1 closed at $15.2M. Pipeline coverage: 3.2x for Q2.",resolved:"yes",trades:41,volume:3800},
+};
+
+const MOCK_LEADERS=[
+  {name:"Sarah Chen",score:820},{name:"Raj Patel",score:755},{name:"Lisa Wong",score:710},
+  {name:"Marcus Kim",score:680},{name:"Aisha Tan",score:650},{name:"David Liu",score:620},
+];
+
+function App(){
+  const [user,setUser]=useState(null);
+  const [view,setView]=useState("landing");
+  const [markets,setMarkets]=useState({});
+  const [positions,setPositions]=useState([]);
+  const [tradeHistory,setTradeHistory]=useState([]);
+  const [selMkt,setSelMkt]=useState(null);
+  const [showCreate,setShowCreate]=useState(false);
+  const [showTrade,setShowTrade]=useState(null);
+  const [showResolve,setShowResolve]=useState(null);
+  const [showWallet,setShowWallet]=useState(false);
+  const [showShare,setShowShare]=useState(false);
+  const [toast,setToast]=useState(null);
+  const [filterCat,setFilterCat]=useState("All");
+  const [credits,setCredits]=useState(1000);
+  const [walletOn,setWalletOn]=useState(false);
+  const [liveN,setLiveN]=useState(0);
+  const [dbOk,setDbOk]=useState(false);
+  const uid=useRef(null);
+
+  useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(null),3000);return()=>clearTimeout(t)}},[toast]);
+
+  // Firebase: seed + listen markets
+  useEffect(()=>{
+    const ref=db.ref('markets');
+    ref.once('value').then(s=>{if(!s.exists())ref.set(SEEDS);setDbOk(true)}).catch(()=>setDbOk(false));
+    const l=ref.on('value',s=>{if(s.exists())setMarkets(s.val())});
+    return()=>ref.off('value',l);
+  },[]);
+
+  // Presence
+  useEffect(()=>{
+    if(!user)return;
+    const p=db.ref('presence/'+uid.current);
+    p.set(true);p.onDisconnect().remove();
+    const all=db.ref('presence');
+    const l=all.on('value',s=>setLiveN(s.exists()?Object.keys(s.val()).length:0));
+    return()=>{all.off('value',l);p.remove()};
+  },[user]);
+
+  // User trades listener
+  useEffect(()=>{
+    if(!user)return;
+    const ref=db.ref('user_trades/'+uid.current);
+    const l=ref.on('value',s=>{
+      if(!s.exists())return;
+      const d=s.val();
+      setCredits(d.credits||1000);
+      setPositions(d.positions?Object.values(d.positions):[]);
+      setTradeHistory(d.history?Object.values(d.history).reverse():[]);
+    });
+    return()=>ref.off('value',l);
+  },[user]);
+
+  const login=(name)=>{
+    const id='u_'+Math.random().toString(36).substr(2,9);
+    uid.current=id;
+    const u={name:name||"Anon_"+id.slice(2,6),avatar:(name||"A")[0].toUpperCase()};
+    setUser(u);setCredits(1000);
+    db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name});
+    setView("markets");setToast(`Welcome ${u.name}! 1,000 PredictCoins credited.`);
+  };
+
+  const trade=(mktId,outcome,shares)=>{
+    const m=markets[mktId];if(!m||m.resolved!=null)return;
+    const q=m.q||[0,0];
+    const{newQ,cost}=LMSR.buy(q,outcome,shares);
+    if(cost>credits){setToast("Insufficient credits!");return}
+    db.ref('markets/'+mktId).transaction(c=>{
+      if(!c)return c;const cq=c.q||[0,0];cq[outcome]+=shares;c.q=cq;c.trades=(c.trades||0)+1;c.volume=(c.volume||0)+Math.round(cost);return c;
+    });
+    const id=uid.current;const pk=`${mktId}_${outcome}`;
+    const ex=positions.find(p=>p.key===pk);
+    const np=ex?{...ex,shares:ex.shares+shares,avgCost:(ex.avgCost*ex.shares+cost)/(ex.shares+shares)}:{key:pk,marketId:mktId,outcome,shares,avgCost:cost/shares,title:m.title};
+    const nc=Math.round((credits-cost)*100)/100;
+    db.ref('user_trades/'+id+'/credits').set(nc);
+    db.ref('user_trades/'+id+'/positions/'+pk).set(np);
+    db.ref('user_trades/'+id+'/history').push({marketId:mktId,title:m.title,outcome:outcome===0?"YES":"NO",shares,cost:cost.toFixed(2),time:new Date().toLocaleTimeString(),prob:pct(LMSR.price(newQ,0))});
+    setToast(`Bought ${shares} ${outcome===0?"YES":"NO"} for ${cost.toFixed(1)} cr`);setShowTrade(null);
+  };
+
+  const createMkt=(title,cat,dl,desc)=>{
+    db.ref('markets/m'+Date.now()).set({title,category:cat,q:[0,0],deadline:dl,creator:user.name,description:desc||"",resolved:null,trades:0,volume:0});
+    setShowCreate(false);setToast(`Market created: "${title}"`);
+  };
+
+  const resolve=(mktId,outcome)=>{
+    db.ref('markets/'+mktId+'/resolved').set(outcome);
+    db.ref('user_trades').once('value').then(s=>{
+      if(!s.exists())return;
+      Object.entries(s.val()).forEach(([uid2,ud])=>{
+        if(!ud.positions)return;
+        Object.values(ud.positions).forEach(pos=>{
+          if(pos.marketId===mktId&&((outcome==="yes"&&pos.outcome===0)||(outcome==="no"&&pos.outcome===1)))
+            db.ref('user_trades/'+uid2+'/credits').transaction(c=>(c||0)+pos.shares);
+        });
+      });
+    });
+    setShowResolve(null);setToast(`Resolved ${outcome.toUpperCase()}! Payouts sent.`);
+  };
+
+  const totalPnl=useMemo(()=>positions.reduce((s,p)=>{const m=markets[p.marketId];if(!m)return s;const cp=LMSR.price(m.q||[0,0],p.outcome);return s+(cp*p.shares-p.avgCost*p.shares)},0),[positions,markets]);
+  const mktList=Object.entries(markets).map(([id,m])=>({id,...m}));
+  const hasCharts = !!BarChart;
+
+  // ── Toast ──
+  const Toast=()=>toast&&<div className="fixed top-20 right-4 z-[100] bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 text-sm toast-anim"><I.CheckCircle size={15} className="text-green-400"/>{toast}</div>;
+
+  // ── Nav ──
+  const Nav=()=>(
+    <div className="flex items-center justify-between px-3 py-2.5 bg-white border-b sticky top-0 z-50 gap-2 flex-wrap">
+      <div className="flex items-center gap-2 cursor-pointer" onClick={()=>{setView("markets");setSelMkt(null)}}>
+        <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center"><I.Target size={16} color="white"/></div>
+        <span className="font-bold text-gray-900">PredictCorp</span>
+        {liveN>0&&<span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full"><span className="w-1.5 h-1.5 bg-green-500 rounded-full live-dot"></span>{liveN}</span>}
+      </div>
+      <div className="flex gap-1">
+        {[{k:"markets",icon:"TrendingUp",l:"Markets"},{k:"portfolio",icon:"Wallet",l:"Portfolio"},{k:"leaderboard",icon:"Trophy",l:"Board"},{k:"analytics",icon:"BarChart3",l:"Stats"}].map(({k,icon,l})=>{
+          const Ic=I[icon];
+          return <button key={k} onClick={()=>{setView(k);setSelMkt(null)}} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${view===k||(view==="detail"&&k==="markets")?"bg-indigo-600 text-white":"text-gray-500 hover:bg-gray-100"}`}><Ic size={13}/>{l}</button>;
+        })}
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={()=>setShowCreate(true)} className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700"><I.Plus size={13}/>New</button>
+        <button onClick={()=>setShowShare(true)} className="p-1.5 border rounded-lg text-gray-500 hover:bg-gray-50"><I.Share2 size={13}/></button>
+        <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg"><I.DollarSign size={12} className="text-amber-600"/><span className="text-xs font-bold text-amber-700">{credits.toFixed(0)}</span></div>
+        {walletOn?<div className="flex items-center gap-1 bg-green-50 border border-green-200 px-2 py-1 rounded-lg"><I.Wallet size={12} className="text-green-600"/><span className="text-xs text-green-700">0x7a..f9</span></div>
+        :<button onClick={()=>setShowWallet(true)} className="p-1.5 border rounded-lg text-gray-400 hover:bg-gray-50"><I.Wallet size={13}/></button>}
+        <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center text-xs font-bold text-indigo-700">{user?.avatar}</div>
+      </div>
+    </div>
+  );
+
+  // ── Landing ──
+  const Landing=()=>{
+    const [nm,setNm]=useState("");
+    return(
+      <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-900 flex flex-col items-center justify-center text-white p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg"><I.Target size={28} className="text-indigo-600"/></div>
+          <div><h1 className="text-3xl sm:text-4xl font-bold tracking-tight">PredictCorp</h1><p className="text-indigo-300 text-sm">Corporate Prediction Markets</p></div>
+        </div>
+        <p className="text-lg text-indigo-200 mb-1 text-center">Surface hidden information that surveys miss.</p>
+        <p className="text-indigo-400 mb-6 text-center max-w-lg text-sm">Employees bet on M&A outcomes, product-market fit, and quarterly targets. Markets aggregate dispersed knowledge into actionable probabilities.</p>
+        <div className="bg-white bg-opacity-10 backdrop-blur rounded-2xl p-5 w-72 sm:w-80 mb-4">
+          <label className="text-sm text-indigo-200 mb-1.5 block">Your name</label>
+          <input value={nm} onChange={e=>setNm(e.target.value)} placeholder="e.g. Sarah, Team A..."
+            onKeyDown={e=>e.key==="Enter"&&login(nm)}
+            className="w-full bg-white bg-opacity-10 border border-indigo-400 rounded-lg px-4 py-2.5 text-white placeholder-indigo-300 outline-none focus:border-white mb-3 text-sm"/>
+          <button onClick={()=>login(nm)} className="w-full flex items-center justify-center gap-2 bg-white text-indigo-900 font-semibold py-3 rounded-xl hover:bg-indigo-50 text-sm">
+            <I.LogIn size={16}/>Join & Get 1,000 Credits
+          </button>
+        </div>
+        <button onClick={()=>{login(nm);setShowWallet(true)}} className="text-indigo-300 hover:text-white text-sm flex items-center gap-1"><I.Wallet size={14}/>or connect crypto wallet</button>
+        <div className="grid grid-cols-3 gap-4 max-w-2xl mt-8">
+          {[["Incentive-Aligned","Credits on the line. No groupthink. 73% more accurate than surveys.","Zap"],
+            ["Token Rewards","Earn PredictCoins for accuracy. Optional crypto wallet for on-chain settlement.","DollarSign"],
+            ["Real-Time Signal","Live dashboards. Track conviction shifts before they appear in reports.","TrendingUp"]
+          ].map(([t,d,icon])=>{
+            const Ic=I[icon];
+            return <div key={t} className="bg-white bg-opacity-10 backdrop-blur rounded-xl p-3 border border-white border-opacity-10">
+              <Ic size={18} className="text-indigo-300 mb-2"/><h3 className="font-semibold text-sm mb-1">{t}</h3><p className="text-xs text-indigo-300 leading-relaxed">{d}</p>
+            </div>;
+          })}
+        </div>
+        {!dbOk&&<p className="mt-4 text-xs text-red-400">Firebase not connected. Check Realtime Database is enabled.</p>}
+        <p className="mt-6 text-xs text-indigo-500">FNCE313 — Financial Innovation, Blockchains & DeFi — SMU 2026</p>
+      </div>
+    );
+  };
+
+  // ── Card ──
+  const Card=({m})=>{
+    const q=m.q||[0,0];const p=LMSR.price(q,0);const res=m.resolved!=null;
+    return(
+      <div onClick={()=>{setSelMkt(m.id);setView("detail")}} className={`bg-white rounded-xl border hover:shadow-md hover:border-indigo-200 cursor-pointer ${res?"opacity-70":""}`}>
+        <div className="p-4">
+          <div className="flex items-start justify-between mb-2">
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{backgroundColor:(CAT_COL[m.category]||"#666")+"18",color:CAT_COL[m.category]||"#666"}}>{m.category}</span>
+            {res?<span className={`text-xs font-bold px-2 py-0.5 rounded-full ${m.resolved==="yes"?"bg-green-100 text-green-700":"bg-red-100 text-red-700"}`}>{String(m.resolved).toUpperCase()}</span>
+            :<div className="flex items-center gap-1 text-xs text-gray-400"><I.Clock size={11}/>{m.deadline}</div>}
+          </div>
+          <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-3 min-h-[2.5rem]">{m.title}</h3>
+          <div className="mb-2">
+            <div className="flex justify-between text-xs mb-1"><span className="font-semibold text-green-600">YES {pct(p)}</span><span className="font-semibold text-red-500">NO {pct(1-p)}</span></div>
+            <div className="w-full bg-red-100 rounded-full h-2.5"><div className="bg-green-500 h-2.5 rounded-full transition-all" style={{width:`${p*100}%`}}/></div>
+          </div>
+          <div className="flex justify-between text-xs text-gray-400"><span>{m.trades||0} trades</span><span>{fmt(m.volume||0)} vol</span></div>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Markets ──
+  const Markets=()=>{
+    const fl=filterCat==="All"?mktList:mktList.filter(m=>m.category===filterCat);
+    const act=fl.filter(m=>!m.resolved);const res=fl.filter(m=>!!m.resolved);
+    return(
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div><h2 className="text-xl font-bold text-gray-900">Prediction Markets</h2><p className="text-gray-500 text-xs">{act.length} active · {mktList.reduce((s,m)=>s+(m.volume||0),0).toLocaleString()} vol</p></div>
+          <div className="flex gap-1 flex-wrap">{["All",...CATEGORIES].map(c=><button key={c} onClick={()=>setFilterCat(c)} className={`px-2.5 py-1 rounded-lg text-xs font-medium ${filterCat===c?"bg-indigo-600 text-white":"bg-gray-100 text-gray-600"}`}>{c}</button>)}</div>
+        </div>
+        {act.length>0&&<><h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Active</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5">{act.map(m=><Card key={m.id} m={m}/>)}</div></>}
+        {res.length>0&&<><h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Resolved</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{res.map(m=><Card key={m.id} m={m}/>)}</div></>}
+      </div>
+    );
+  };
+
+  // ── Detail ──
+  const Detail=()=>{
+    const m=markets[selMkt];if(!m)return null;
+    const q=m.q||[0,0];const p=LMSR.price(q,0);const res=!!m.resolved;
+    const myP=positions.filter(x=>x.marketId===selMkt);const myT=tradeHistory.filter(x=>x.marketId===selMkt);
+    const isCr=m.creator===user?.name;
+    return(
+      <div className="max-w-5xl mx-auto">
+        <button onClick={()=>setView("markets")} className="text-indigo-600 text-sm font-medium mb-3 hover:underline">← Back</button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-white rounded-xl border p-5">
+              <div className="flex items-start justify-between mb-2">
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{backgroundColor:(CAT_COL[m.category]||"#666")+"18",color:CAT_COL[m.category]||"#666"}}>{m.category}</span>
+                {res&&<span className={`text-sm font-bold px-3 py-1 rounded-full ${m.resolved==="yes"?"bg-green-100 text-green-700":"bg-red-100 text-red-700"}`}>{String(m.resolved).toUpperCase()}</span>}
+              </div>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">{m.title}</h2>
+              <p className="text-gray-500 text-sm mb-4">{m.description}</p>
+              <div className="mb-4">
+                <div className="flex justify-between mb-1"><span className="text-lg font-bold text-green-600">YES {pct(p)}</span><span className="text-lg font-bold text-red-500">NO {pct(1-p)}</span></div>
+                <div className="w-full bg-red-100 rounded-full h-5"><div className="bg-green-500 h-5 rounded-full transition-all" style={{width:`${p*100}%`}}/></div>
+              </div>
+              <div className="grid grid-cols-4 gap-2">{[["Trades",m.trades||0],["Volume",fmt(m.volume||0)],["Deadline",m.deadline],["Creator",m.creator]].map(([l,v])=><div key={l} className="bg-gray-50 rounded-lg p-2.5 text-center"><p className="text-xs text-gray-400">{l}</p><p className="font-semibold text-sm">{v}</p></div>)}</div>
+            </div>
+            {myP.length>0&&<div className="bg-white rounded-xl border p-4">
+              <h3 className="font-semibold text-sm mb-2">Your Positions</h3>
+              {myP.map((x,i)=>{const cp=LMSR.price(q,x.outcome);const pnl=(cp-x.avgCost)*x.shares;return(
+                <div key={i} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg mb-1">
+                  <div><span className={`text-sm font-bold ${x.outcome===0?"text-green-600":"text-red-500"}`}>{x.outcome===0?"YES":"NO"}</span><span className="text-sm text-gray-500 ml-2">{x.shares}sh @{x.avgCost.toFixed(2)}</span></div>
+                  <span className={`text-sm font-bold ${pnl>=0?"text-green-600":"text-red-500"}`}>{pnl>=0?"+":""}{pnl.toFixed(1)}</span>
+                </div>)})}
+            </div>}
+            {myT.length>0&&<div className="bg-white rounded-xl border p-4">
+              <h3 className="font-semibold text-sm mb-2">Your Trades</h3>
+              {myT.slice(0,8).map((t,i)=><div key={i} className="flex justify-between py-1.5 border-b border-gray-50 text-sm"><span className={t.outcome==="YES"?"text-green-600":"text-red-500"}>{t.outcome} x{t.shares}</span><span className="text-gray-400">{t.cost}cr · {t.time}</span></div>)}
+            </div>}
+          </div>
+          <div className="space-y-4">
+            {!res&&<div className="bg-white rounded-xl border p-4 lg:sticky lg:top-16">
+              <h3 className="font-semibold mb-3 text-sm">Trade</h3>
+              <div className="grid grid-cols-2 gap-2.5 mb-2">
+                <button onClick={()=>setShowTrade({marketId:selMkt,outcome:0})} className="bg-green-50 border-2 border-green-200 rounded-xl p-3 text-center hover:border-green-400">
+                  <I.ArrowUp size={18} className="mx-auto text-green-600 mb-1"/><p className="font-bold text-green-700 text-sm">YES</p><p className="text-xs text-green-500">{pct(p)}</p></button>
+                <button onClick={()=>setShowTrade({marketId:selMkt,outcome:1})} className="bg-red-50 border-2 border-red-200 rounded-xl p-3 text-center hover:border-red-400">
+                  <I.ArrowDown size={18} className="mx-auto text-red-500 mb-1"/><p className="font-bold text-red-600 text-sm">NO</p><p className="text-xs text-red-400">{pct(1-p)}</p></button>
+              </div>
+              <p className="text-xs text-gray-400 text-center">LMSR · b=100</p>
+            </div>}
+            {isCr&&!res&&<div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
+              <div className="flex items-center gap-2 mb-2"><I.Lock size={13} className="text-amber-600"/><span className="text-xs font-semibold text-amber-800">Creator Controls</span></div>
+              <button onClick={()=>setShowResolve({id:selMkt,...m})} className="w-full bg-amber-600 text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-1"><I.Unlock size={13}/>Resolve</button>
+            </div>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Portfolio ──
+  const Portfolio=()=>{
+    const pw=positions.map(p=>{const m=markets[p.marketId];const cp=m?LMSR.price(m.q||[0,0],p.outcome):0;return{...p,cp,val:cp*p.shares,pnl:(cp-p.avgCost)*p.shares}});
+    const tv=pw.reduce((s,p)=>s+p.val,0);
+    return(
+      <div className="max-w-5xl mx-auto space-y-5">
+        <h2 className="text-xl font-bold">Portfolio</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[["Credits",credits.toFixed(0),"DollarSign"],["Positions",positions.length,"TrendingUp"],["Value",tv.toFixed(0),"Wallet"],["P&L",`${totalPnl>=0?"+":""}${totalPnl.toFixed(0)}`,"BarChart3"]].map(([l,v,icon])=>{
+            const Ic=I[icon];
+            return <div key={l} className="bg-white rounded-xl border p-3"><div className="flex items-center gap-1.5 mb-1"><Ic size={13} className="text-indigo-500"/><span className="text-xs text-gray-500">{l}</span></div><p className="text-xl font-bold">{v}</p></div>;
+          })}
+        </div>
+        {positions.length===0?<div className="bg-white rounded-xl border p-8 text-center"><p className="text-gray-500 text-sm mb-3">No positions yet.</p><button onClick={()=>setView("markets")} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm">Browse Markets</button></div>
+        :<div className="bg-white rounded-xl border overflow-x-auto">
+          <table className="w-full"><thead className="bg-gray-50"><tr>{["Market","Side","Shares","Avg","Now","P&L"].map(h=><th key={h} className="text-left text-xs font-medium text-gray-500 uppercase px-3 py-2">{h}</th>)}</tr></thead>
+          <tbody className="divide-y divide-gray-100">{pw.map((p,i)=><tr key={i} className="hover:bg-gray-50">
+            <td className="px-3 py-2.5 text-sm max-w-[180px] truncate">{p.title}</td>
+            <td className="px-3 py-2.5"><span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${p.outcome===0?"bg-green-100 text-green-700":"bg-red-100 text-red-700"}`}>{p.outcome===0?"YES":"NO"}</span></td>
+            <td className="px-3 py-2.5 text-sm">{p.shares}</td><td className="px-3 py-2.5 text-sm">{p.avgCost.toFixed(2)}</td><td className="px-3 py-2.5 text-sm">{p.cp.toFixed(2)}</td>
+            <td className="px-3 py-2.5 text-sm font-bold" style={{color:p.pnl>=0?"#059669":"#dc2626"}}>{p.pnl>=0?"+":""}{p.pnl.toFixed(1)}</td>
+          </tr>)}</tbody></table></div>}
+      </div>
+    );
+  };
+
+  // ── Leaderboard ──
+  const Leaderboard=()=>{
+    const [fb,setFb]=useState([]);
+    useEffect(()=>{const l=db.ref('user_trades').on('value',s=>{if(!s.exists())return;setFb(Object.entries(s.val()).map(([,d])=>({name:d.name||"Anon",score:Math.round(d.credits||0),live:true})).sort((a,b)=>b.score-a.score))});return()=>db.ref('user_trades').off('value',l)},[]);
+    const all=[...fb,...MOCK_LEADERS.map(m=>({...m,live:false}))].sort((a,b)=>b.score-a.score);
+    return(
+      <div className="max-w-3xl mx-auto space-y-5">
+        <h2 className="text-xl font-bold">Leaderboard</h2>
+        <div className="bg-white rounded-xl border overflow-hidden">
+          <table className="w-full"><thead className="bg-gray-50"><tr>{["#","Forecaster","Score",""].map(h=><th key={h} className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-2">{h}</th>)}</tr></thead>
+          <tbody className="divide-y divide-gray-100">{all.slice(0,15).map((p,i)=>{const isU=p.name===user?.name;return(
+            <tr key={i} className={isU?"bg-indigo-50":"hover:bg-gray-50"}>
+              <td className="px-4 py-2.5">{i<3?["\u{1F947}","\u{1F948}","\u{1F949}"][i]:<span className="text-xs text-gray-400">#{i+1}</span>}</td>
+              <td className="px-4 py-2.5 text-sm font-medium flex items-center gap-2">{p.name}{p.live&&<span className="w-1.5 h-1.5 bg-green-500 rounded-full live-dot"/>}</td>
+              <td className="px-4 py-2.5 text-sm font-bold text-indigo-600">{p.score.toLocaleString()}</td>
+              <td className="px-4 py-2.5">{isU&&<span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">You</span>}</td>
+            </tr>)})}</tbody></table>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Analytics ──
+  const Analytics=()=>{
+    const act=mktList.filter(m=>!m.resolved);const res=mktList.filter(m=>!!m.resolved);
+    const pd=act.slice(0,8).map(m=>({name:m.title.slice(0,20)+"...",yes:Math.round(LMSR.price(m.q||[0,0],0)*100),no:Math.round(LMSR.price(m.q||[0,0],1)*100)}));
+    const cd=CATEGORIES.filter(c=>c!=="Custom").map(c=>({name:c,volume:mktList.filter(m=>m.category===c).reduce((s,m)=>s+(m.volume||0),0)}));
+    return(
+      <div className="max-w-6xl mx-auto space-y-5">
+        <h2 className="text-xl font-bold">Analytics</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[["Markets",mktList.length,"TrendingUp"],["Active",act.length,"Play"],["Resolved",res.length,"CheckCircle"],["Volume",fmt(mktList.reduce((s,m)=>s+(m.volume||0),0)),"DollarSign"]].map(([l,v,icon])=>{
+            const Ic=I[icon];
+            return <div key={l} className="bg-white rounded-xl border p-3"><div className="flex items-center gap-1.5 mb-1"><Ic size={13} className="text-indigo-500"/><span className="text-xs text-gray-500">{l}</span></div><p className="text-xl font-bold">{v}</p></div>;
+          })}
+        </div>
+        {hasCharts ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="bg-white rounded-xl border p-4"><h3 className="font-semibold text-sm mb-3">Probabilities</h3><div className="h-56"><ResponsiveContainer><BarChart data={pd} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/><XAxis type="number" domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fontSize:10}}/><YAxis type="category" dataKey="name" tick={{fontSize:9}} width={100}/><Tooltip formatter={v=>`${v}%`}/><Bar dataKey="yes" name="YES" fill="#059669" stackId="a"/><Bar dataKey="no" name="NO" fill="#dc2626" stackId="a"/></BarChart></ResponsiveContainer></div></div>
+            <div className="bg-white rounded-xl border p-4"><h3 className="font-semibold text-sm mb-3">Volume by Category</h3><div className="h-56"><ResponsiveContainer><PieChart><Pie data={cd} cx="50%" cy="50%" outerRadius={75} dataKey="volume" label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`}>{cd.map((_,i)=><Cell key={i} fill={COLORS[i]}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer></div></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="bg-white rounded-xl border p-4">
+              <h3 className="font-semibold text-sm mb-3">Market Probabilities</h3>
+              {pd.map(m=>(
+                <div key={m.name} className="mb-2">
+                  <p className="text-xs text-gray-600 mb-1 truncate">{m.name}</p>
+                  <div className="w-full bg-red-100 rounded-full h-4 relative">
+                    <div className="bg-green-500 h-4 rounded-full" style={{width:`${m.yes}%`}}/>
+                    <span className="absolute left-2 top-0 text-xs font-bold text-white leading-4">{m.yes}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="bg-white rounded-xl border p-4">
+              <h3 className="font-semibold text-sm mb-3">Volume by Category</h3>
+              {cd.map((c,i)=>{const max=Math.max(...cd.map(x=>x.volume),1);return(
+                <div key={c.name} className="mb-2 flex items-center gap-2">
+                  <span className="text-xs w-20 text-gray-600">{c.name}</span>
+                  <div className="flex-1 bg-gray-100 rounded-full h-4"><div className="h-4 rounded-full" style={{width:`${(c.volume/max)*100}%`,backgroundColor:COLORS[i]}}/></div>
+                  <span className="text-xs text-gray-500 w-12 text-right">{fmt(c.volume)}</span>
+                </div>
+              )})}
+            </div>
+          </div>
+        )}
+        <div className="bg-white rounded-xl border p-4">
+          <h3 className="font-semibold text-sm mb-3">Why Prediction Markets Beat Surveys</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[["Incentive-Aligned","Credits on the line eliminates groupthink. 73% more accurate than executive surveys.","Zap"],
+              ["Info Aggregation","Each trade incorporates private info. Surfaces signals 3-6 weeks earlier.","Users"],
+              ["Continuous","Real-time vs quarterly surveys. Reduces forecast lag to zero.","TrendingUp"]
+            ].map(([t,d,icon])=>{const Ic=I[icon];return <div key={t} className="bg-gray-50 rounded-lg p-3"><Ic size={14} className="text-indigo-500 mb-1.5"/><h4 className="font-semibold text-sm mb-1">{t}</h4><p className="text-xs text-gray-600 leading-relaxed">{d}</p></div>})}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ── Modals ──
+  const TradeM=()=>{
+    const [sh,setSh]=useState(10);if(!showTrade)return null;
+    const{marketId,outcome}=showTrade;const m=markets[marketId];if(!m)return null;
+    const q=m.q||[0,0];const{newQ,cost}=LMSR.buy(q,outcome,sh);const np=LMSR.price(newQ,0);const isY=outcome===0;
+    return(
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={()=>setShowTrade(null)}>
+        <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl" onClick={e=>e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-2"><h3 className="font-bold">Buy {isY?"YES":"NO"}</h3><button onClick={()=>setShowTrade(null)}><I.X size={18} className="text-gray-400"/></button></div>
+          <p className="text-sm text-gray-600 mb-3">{m.title}</p>
+          <div className="mb-3"><label className="text-xs text-gray-600 mb-1 block">Shares</label>
+            <input type="number" value={sh} onChange={e=>setSh(Math.max(1,+e.target.value))} className="w-full border rounded-lg px-3 py-2 text-lg font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"/></div>
+          <div className="bg-gray-50 rounded-lg p-3 mb-3 space-y-1 text-sm">
+            <div className="flex justify-between"><span className="text-gray-500">Cost</span><span className="font-medium">{cost.toFixed(2)} cr</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">New Prob</span><span>{pct(np)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Max Payout</span><span className="font-bold text-green-600">{sh} cr</span></div>
+            {cost>credits&&<div className="text-red-500 text-xs flex items-center gap-1"><I.AlertCircle size={11}/>Need {cost.toFixed(0)}, have {credits.toFixed(0)}</div>}
+          </div>
+          <button onClick={()=>trade(marketId,outcome,sh)} disabled={cost>credits}
+            className={`w-full font-semibold py-2.5 rounded-lg text-white ${isY?"bg-green-600 hover:bg-green-700":"bg-red-500 hover:bg-red-600"} ${cost>credits?"opacity-50":""}`}>
+            Buy {isY?"YES":"NO"} · {cost.toFixed(1)} cr</button>
+        </div>
+      </div>
+    );
+  };
+
+  const CreateM=()=>{
+    const [t,setT]=useState("");const [c,setC]=useState("Custom");const [dl,setDl]=useState(new Date().toISOString().split('T')[0]);const [d,setD]=useState("");
+    if(!showCreate)return null;
+    return(
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={()=>setShowCreate(false)}>
+        <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-2xl" onClick={e=>e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-3"><h3 className="font-bold flex items-center gap-2"><I.Plus size={18} className="text-green-600"/>New Market</h3><button onClick={()=>setShowCreate(false)}><I.X size={18} className="text-gray-400"/></button></div>
+          <div className="space-y-3">
+            <div><label className="text-xs font-medium text-gray-700 mb-1 block">Question (YES/NO)</label>
+              <input value={t} onChange={e=>setT(e.target.value)} placeholder='e.g. "Will this presentation overrun 15 mins?"'
+                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><label className="text-xs font-medium text-gray-700 mb-1 block">Category</label>
+                <select value={c} onChange={e=>setC(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none">{CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></div>
+              <div><label className="text-xs font-medium text-gray-700 mb-1 block">Deadline</label>
+                <input type="date" value={dl} onChange={e=>setDl(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm outline-none"/></div>
+            </div>
+            <div><label className="text-xs font-medium text-gray-700 mb-1 block">Context</label>
+              <textarea value={d} onChange={e=>setD(e.target.value)} rows={2} placeholder="Help traders decide..." className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"/></div>
+          </div>
+          <button onClick={()=>t&&createMkt(t,c,dl,d)} disabled={!t} className={`w-full mt-3 bg-green-600 text-white font-semibold py-2.5 rounded-lg hover:bg-green-700 ${!t?"opacity-50":""}`}>Create Market</button>
+          <p className="text-xs text-gray-400 mt-2 text-center">You can resolve this when the outcome is known.</p>
+        </div>
+      </div>
+    );
+  };
+
+  const ResolveM=()=>{
+    if(!showResolve)return null;const m=showResolve;const q=m.q||[0,0];
+    return(
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={()=>setShowResolve(null)}>
+        <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl" onClick={e=>e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-2"><h3 className="font-bold">Resolve</h3><button onClick={()=>setShowResolve(null)}><I.X size={18} className="text-gray-400"/></button></div>
+          <p className="text-sm text-gray-600 mb-2">{m.title}</p>
+          <p className="text-xs text-gray-400 mb-3">Final: YES {pct(LMSR.price(q,0))} · {m.trades||0} trades</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button onClick={()=>resolve(m.id,"yes")} className="bg-green-50 border-2 border-green-300 rounded-xl p-3.5 text-center hover:bg-green-100"><I.CheckCircle size={22} className="mx-auto text-green-600 mb-1"/><p className="font-bold text-green-700 text-sm">YES</p></button>
+            <button onClick={()=>resolve(m.id,"no")} className="bg-red-50 border-2 border-red-300 rounded-xl p-3.5 text-center hover:bg-red-100"><I.X size={22} className="mx-auto text-red-500 mb-1"/><p className="font-bold text-red-600 text-sm">NO</p></button>
+          </div>
+          <p className="text-xs text-gray-400 mt-3 text-center">Winners get 1 credit per share.</p>
+        </div>
+      </div>
+    );
+  };
+
+  const WalletM=()=>{
+    if(!showWallet)return null;
+    return(
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={()=>setShowWallet(false)}>
+        <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl" onClick={e=>e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-3"><h3 className="font-bold">Connect Wallet</h3><button onClick={()=>setShowWallet(false)}><I.X size={18} className="text-gray-400"/></button></div>
+          {[["MetaMask","\u{1F98A}"],["WalletConnect","\u{1F517}"],["Coinbase","\u{1F535}"]].map(([n,ic])=>
+            <button key={n} onClick={()=>{if(!user)login("");setWalletOn(true);setShowWallet(false);setToast(`${n} connected (mock)`)}}
+              className="w-full flex items-center gap-3 p-2.5 border rounded-lg hover:bg-gray-50 mb-2"><span className="text-lg">{ic}</span><span className="text-sm font-medium">{n}</span><I.ChevronRight size={13} className="ml-auto text-gray-300"/></button>)}
+          <div className="mt-2 bg-indigo-50 rounded-lg p-2.5"><p className="text-xs text-indigo-600">PredictCoins → ERC-20 for DeFi composability.</p></div>
+        </div>
+      </div>
+    );
+  };
+
+  const ShareM=()=>{
+    const [cp2,setCp2]=useState(false);if(!showShare)return null;
+    const url=window.location.href;
+    return(
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={()=>setShowShare(false)}>
+        <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl" onClick={e=>e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-3"><h3 className="font-bold">Share</h3><button onClick={()=>setShowShare(false)}><I.X size={18} className="text-gray-400"/></button></div>
+          <p className="text-sm text-gray-500 mb-3">Share this URL. Everyone trades on the same markets in real-time.</p>
+          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2.5 mb-3">
+            <input value={url} readOnly className="flex-1 bg-transparent text-xs outline-none truncate"/>
+            <button onClick={()=>{navigator.clipboard.writeText(url);setCp2(true);setTimeout(()=>setCp2(false),2000)}}
+              className="flex items-center gap-1 bg-indigo-600 text-white px-2.5 py-1 rounded-lg text-xs font-medium">
+              {cp2?<><I.CheckCircle size={12}/>Done</>:<><I.Copy size={12}/>Copy</>}</button>
+          </div>
+          <div className="bg-indigo-50 rounded-lg p-3 space-y-1">
+            <p className="text-xs font-semibold text-indigo-800">For your presentation:</p>
+            <p className="text-xs text-indigo-600">1. Share URL or show QR</p>
+            <p className="text-xs text-indigo-600">2. Attendees join → 1,000 credits</p>
+            <p className="text-xs text-indigo-600">3. Create live market ("Will this overrun?")</p>
+            <p className="text-xs text-indigo-600">4. Everyone trades → resolve at the end</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if(!user&&view!=="landing")setView("landing");
+
+  return(
+    <div className="min-h-screen bg-gray-50">
+      <Toast/><TradeM/><CreateM/><ResolveM/><WalletM/><ShareM/>
+      {view==="landing"?<Landing/>:<><Nav/><div className="p-3 sm:p-5">
+        {view==="markets"&&<Markets/>}
+        {view==="detail"&&<Detail/>}
+        {view==="portfolio"&&<Portfolio/>}
+        {view==="leaderboard"&&<Leaderboard/>}
+        {view==="analytics"&&<Analytics/>}
+      </div></>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
