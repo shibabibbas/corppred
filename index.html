@@ -128,6 +128,26 @@ function App(){
     return()=>ref.off('value',l);
   },[]);
 
+  // Session restore from localStorage
+  useEffect(()=>{
+    const saved=localStorage.getItem('predictcorp_session');
+    if(!saved)return;
+    try{
+      const{uid:savedUid,name}=JSON.parse(saved);
+      if(!savedUid)return;
+      db.ref('user_trades/'+savedUid).once('value').then(s=>{
+        if(s.exists()){
+          uid.current=savedUid;
+          const d=s.val();
+          const n=d.name||name;
+          setUser({name:n,avatar:(n||"A")[0].toUpperCase()});
+          setCredits(d.credits||1000);
+          setView("markets");
+        }else{localStorage.removeItem('predictcorp_session')}
+      });
+    }catch(e){localStorage.removeItem('predictcorp_session')}
+  },[]);
+
   // Presence
   useEffect(()=>{
     if(!user)return;
@@ -152,13 +172,38 @@ function App(){
     return()=>ref.off('value',l);
   },[user]);
 
-  const login=(name)=>{
-    const id='u_'+Math.random().toString(36).substr(2,9);
-    uid.current=id;
-    const u={name:name||"Anon_"+id.slice(2,6),avatar:(name||"A")[0].toUpperCase()};
-    setUser(u);setCredits(1000);
-    db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name});
-    setView("markets");setToast(`Welcome ${u.name}! 1,000 PredictCoins credited.`);
+  const login=(name,cb)=>{
+    const trimmed=(name||"").trim();
+    if(trimmed){
+      db.ref('user_trades').orderByChild('name').equalTo(trimmed).once('value').then(s=>{
+        if(s.exists()){
+          const[existingUid,data]=Object.entries(s.val())[0];
+          uid.current=existingUid;
+          const u={name:data.name,avatar:data.name[0].toUpperCase()};
+          setUser(u);setCredits(data.credits||1000);
+          localStorage.setItem('predictcorp_session',JSON.stringify({uid:existingUid,name:data.name}));
+          setView("markets");setToast(`Welcome back ${u.name}! Session restored.`);
+        }else{
+          const id='u_'+Math.random().toString(36).substr(2,9);
+          uid.current=id;
+          const u={name:trimmed,avatar:trimmed[0].toUpperCase()};
+          setUser(u);setCredits(1000);
+          db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name});
+          localStorage.setItem('predictcorp_session',JSON.stringify({uid:id,name:u.name}));
+          setView("markets");setToast(`Welcome ${u.name}! 1,000 PredictCoins credited.`);
+        }
+        if(cb)cb();
+      });
+    }else{
+      const id='u_'+Math.random().toString(36).substr(2,9);
+      uid.current=id;
+      const u={name:"Anon_"+id.slice(2,6),avatar:"A"};
+      setUser(u);setCredits(1000);
+      db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name});
+      localStorage.setItem('predictcorp_session',JSON.stringify({uid:id,name:u.name}));
+      setView("markets");setToast(`Welcome ${u.name}! 1,000 PredictCoins credited.`);
+      if(cb)cb();
+    }
   };
 
   const trade=(mktId,outcome,shares)=>{
@@ -234,6 +279,7 @@ function App(){
   // ── Landing ──
   const Landing=()=>{
     const [nm,setNm]=useState("");
+    const [nameErr,setNameErr]=useState(false);
     return(
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-900 flex flex-col items-center justify-center text-white p-6">
         <div className="flex items-center gap-3 mb-5">
@@ -244,14 +290,15 @@ function App(){
         <p className="text-indigo-400 mb-6 text-center max-w-lg text-sm">Employees bet on M&A outcomes, product-market fit, and quarterly targets. Markets aggregate dispersed knowledge into actionable probabilities.</p>
         <div className="bg-white bg-opacity-10 backdrop-blur rounded-2xl p-5 w-72 sm:w-80 mb-4">
           <label className="text-sm text-indigo-200 mb-1.5 block">Your name</label>
-          <input value={nm} onChange={e=>setNm(e.target.value)} placeholder="e.g. Sarah, Team A..."
+          <input value={nm} onChange={e=>{setNm(e.target.value);setNameErr(false)}} placeholder="e.g. Sarah, Team A..."
             onKeyDown={e=>e.key==="Enter"&&login(nm)}
-            className="w-full bg-white bg-opacity-10 border border-indigo-400 rounded-lg px-4 py-2.5 text-white placeholder-indigo-300 outline-none focus:border-white mb-3 text-sm"/>
+            className={`w-full bg-white bg-opacity-10 border ${nameErr?"border-red-400":"border-indigo-400"} rounded-lg px-4 py-2.5 text-white placeholder-indigo-300 outline-none focus:border-white mb-1 text-sm`}/>
+          {nameErr?<p className="text-xs text-red-400 mb-2">Enter your name to connect a wallet.</p>:<div className="mb-2"/>}
           <button onClick={()=>login(nm)} className="w-full flex items-center justify-center gap-2 bg-white text-indigo-900 font-semibold py-3 rounded-xl hover:bg-indigo-50 text-sm">
             <I.LogIn size={16}/>Join & Get 1,000 Credits
           </button>
         </div>
-        <button onClick={()=>{login(nm);setShowWallet(true)}} className="text-indigo-300 hover:text-white text-sm flex items-center gap-1"><I.Wallet size={14}/>or connect crypto wallet</button>
+        <button onClick={()=>{if(!nm.trim()){setNameErr(true);return}login(nm,()=>setShowWallet(true))}} className="text-indigo-300 hover:text-white text-sm flex items-center gap-1"><I.Wallet size={14}/>or connect crypto wallet</button>
         <div className="grid grid-cols-3 gap-4 max-w-2xl mt-8">
           {[["Incentive-Aligned","Credits on the line. No groupthink. 73% more accurate than surveys.","Zap"],
             ["Token Rewards","Earn PredictCoins for accuracy. Optional crypto wallet for on-chain settlement.","DollarSign"],
@@ -543,14 +590,23 @@ function App(){
   };
 
   const WalletM=()=>{
+    const [walletName,setWalletName]=useState("");
     if(!showWallet)return null;
+    const needsName=!user;
+    const nameValid=walletName.trim().length>0;
     return(
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={()=>setShowWallet(false)}>
         <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl" onClick={e=>e.stopPropagation()}>
           <div className="flex justify-between items-center mb-3"><h3 className="font-bold">Connect Wallet</h3><button onClick={()=>setShowWallet(false)}><I.X size={18} className="text-gray-400"/></button></div>
+          {needsName&&<div className="mb-3">
+            <label className="text-xs font-medium text-gray-700 mb-1 block">Your name</label>
+            <input value={walletName} onChange={e=>setWalletName(e.target.value)} placeholder="Enter your name first..."
+              className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/>
+            {!nameValid&&<p className="text-xs text-gray-400 mt-1">Name required to connect wallet.</p>}
+          </div>}
           {[["MetaMask","\u{1F98A}"],["WalletConnect","\u{1F517}"],["Coinbase","\u{1F535}"]].map(([n,ic])=>
-            <button key={n} onClick={()=>{if(!user)login("");setWalletOn(true);setShowWallet(false);setToast(`${n} connected (mock)`)}}
-              className="w-full flex items-center gap-3 p-2.5 border rounded-lg hover:bg-gray-50 mb-2"><span className="text-lg">{ic}</span><span className="text-sm font-medium">{n}</span><I.ChevronRight size={13} className="ml-auto text-gray-300"/></button>)}
+            <button key={n} onClick={()=>{if(needsName&&!nameValid)return;const connect=()=>{setWalletOn(true);setShowWallet(false);setToast(`${n} connected (mock)`)};if(needsName){login(walletName,connect)}else{connect()}}}
+              className={`w-full flex items-center gap-3 p-2.5 border rounded-lg mb-2 ${needsName&&!nameValid?"opacity-50 cursor-not-allowed":"hover:bg-gray-50"}`}><span className="text-lg">{ic}</span><span className="text-sm font-medium">{n}</span><I.ChevronRight size={13} className="ml-auto text-gray-300"/></button>)}
           <div className="mt-2 bg-indigo-50 rounded-lg p-2.5"><p className="text-xs text-indigo-600">PredictCoins → ERC-20 for DeFi composability.</p></div>
         </div>
       </div>
