@@ -39,35 +39,37 @@ const {useState,useEffect,useMemo,useRef} = React;
 const RC = window.Recharts || {};
 const {BarChart,Bar,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer,PieChart,Pie,Cell} = RC;
 
-/* ── Inline SVG Icons ── */
-const Icon = ({d, size=16, color="currentColor", className=""}) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d={d}/>
-  </svg>
+/* ── Icons ── */
+const Icon = ({d,size=16,color="currentColor",className=""}) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={d}/></svg>
 );
 const I = {
-  TrendingUp: (p) => <Icon {...p} d="M22 7l-8.5 8.5-5-5L2 17"/>,
-  Users: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-  DollarSign: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
-  Plus: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-  LogIn: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>,
-  Wallet: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a1 1 0 0 0 0 4h4v-4Z"/></svg>,
-  Trophy: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
-  BarChart3: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>,
-  CheckCircle: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
-  X: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-  Clock: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-  ArrowUp: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>,
-  ArrowDown: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>,
-  Target: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
-  Zap: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-  AlertCircle: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
-  ChevronRight: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polyline points="9 18 15 12 9 6"/></svg>,
-  Play: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polygon points="5 3 19 12 5 21 5 3"/></svg>,
-  Lock: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
-  Unlock: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
-  Share2: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
-  Copy: (p) => <svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+  TrendingUp:(p)=><Icon {...p} d="M22 7l-8.5 8.5-5-5L2 17"/>,
+  Users:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  DollarSign:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+  Plus:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  LogIn:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>,
+  Wallet:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a1 1 0 0 0 0 4h4v-4Z"/></svg>,
+  Trophy:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+  BarChart3:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>,
+  CheckCircle:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+  X:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  Clock:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  ArrowUp:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>,
+  ArrowDown:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>,
+  Target:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+  Zap:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  AlertCircle:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+  ChevronRight:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polyline points="9 18 15 12 9 6"/></svg>,
+  Play:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+  Lock:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  Unlock:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
+  Share2:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
+  Copy:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+  Flag:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
+  Shield:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  Star:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill={p.fill||"none"} stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  LayoutDashboard:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
 };
 
 const LMSR = {
@@ -82,15 +84,35 @@ const COLORS=["#1e40af","#dc2626","#059669","#7c3aed","#d97706","#0891b2"];
 const pct=n=>`${(n*100).toFixed(1)}%`;
 const fmt=n=>n>=1e6?`${(n/1e6).toFixed(1)}M`:n>=1e3?`${(n/1e3).toFixed(1)}K`:`${n}`;
 
+/* Phase 1: Template definitions */
+const TEMPLATES={
+  binary:{label:"Binary",color:"#1e40af",hint:'e.g. "Will Product X launch before October 1?"'},
+  scalar:{label:"Scalar",color:"#059669",hint:'e.g. "Will Q4 revenue exceed $500M?"'},
+  milestone:{label:"Milestone",color:"#7c3aed",hint:'e.g. "Will regulatory approval be obtained before Q3?"'},
+};
+
+/* Phase 8: Participation range helper */
+const participationRange=n=>{
+  if(!n||n===0)return"No participants yet";
+  if(n<=5)return"A few participants";
+  if(n<=15)return"Several participants";
+  if(n<=30)return"~15–30 participants";
+  if(n<=60)return"~30–60 participants";
+  return"60+ participants";
+};
+
+/* Phase 5: current quarter string */
+const currentQuarter=()=>{const d=new Date();const q=Math.ceil((d.getMonth()+1)/3);return`${d.getFullYear()}-Q${q}`};
+
 const SEEDS={
-  m1:{title:"Acme Corp acquisition of DataVault closes by Q3 2026",category:"M&A",q:[25,-5],deadline:"2026-09-30",creator:"Strategy Team",description:"Board approved LOI in Jan. Due diligence ongoing. Regulatory filing expected Q2.",resolved:null,trades:47,volume:4200},
-  m2:{title:"Project Atlas achieves product-market fit (>40% D90 retention)",category:"Product",q:[10,5],deadline:"2026-06-30",creator:"Product Lead",description:"Currently at 28% D90 retention. v2.3 launching March with onboarding overhaul.",resolved:null,trades:31,volume:2800},
-  m3:{title:"APAC revenue exceeds $50M this fiscal year",category:"Sales",q:[-8,12],deadline:"2026-12-31",creator:"APAC Head",description:"YTD run-rate: $38M. Pipeline strong in SG and Japan.",resolved:null,trades:22,volume:1950},
-  m4:{title:"Board approves pivot to AI-first product strategy by June",category:"Strategy",q:[30,-15],deadline:"2026-06-30",creator:"CEO Office",description:"CEO signalled AI priority at all-hands. CPO leading feasibility study.",resolved:null,trades:56,volume:5100},
-  m5:{title:"Engineering headcount exceeds 200 by year-end",category:"Operations",q:[0,8],deadline:"2026-12-31",creator:"VP Engineering",description:"Current: 156. Approved req for 60 new hires. Attrition at 12%.",resolved:null,trades:18,volume:1400},
-  m6:{title:"Series C closes at $500M+ valuation",category:"M&A",q:[15,0],deadline:"2026-08-31",creator:"CFO",description:"Term sheets from 3 VCs. Lead investor DD wrapping up.",resolved:null,trades:39,volume:3600},
-  m7:{title:"Customer NPS improves to 60+ (currently 42)",category:"Product",q:[-5,10],deadline:"2026-09-30",creator:"CX Team",description:"Key drivers: support response time and onboarding.",resolved:null,trades:15,volume:1100},
-  m8:{title:"Q2 revenue hits $18M target",category:"Sales",q:[5,3],deadline:"2026-06-30",creator:"CRO",description:"Q1 closed at $15.2M. Pipeline coverage: 3.2x for Q2.",resolved:"yes",trades:41,volume:3800},
+  m1:{title:"Acme Corp acquisition of DataVault closes by Q3 2026",category:"M&A",type:"milestone",q:[25,-5],deadline:"2026-09-30",creator:"Strategy Team",department:"Strategy",resolutionSource:"Board Announcement",resolutionVerifier:"CFO",description:"Board approved LOI in Jan. Due diligence ongoing. Regulatory filing expected Q2.",resolved:null,pendingResolution:null,dispute:null,trades:47,volume:4200},
+  m2:{title:"Project Atlas achieves product-market fit (>40% D90 retention)",category:"Product",type:"scalar",q:[10,5],deadline:"2026-06-30",creator:"Product Lead",department:"Product",resolutionSource:"Analytics Dashboard",resolutionVerifier:"CTO",description:"Currently at 28% D90 retention. v2.3 launching March with onboarding overhaul.",resolved:null,pendingResolution:null,dispute:null,trades:31,volume:2800},
+  m3:{title:"APAC revenue exceeds $50M this fiscal year",category:"Sales",type:"scalar",q:[-8,12],deadline:"2026-12-31",creator:"APAC Head",department:"Sales",resolutionSource:"ERP System",resolutionVerifier:"CFO",description:"YTD run-rate: $38M. Pipeline strong in SG and Japan.",resolved:null,pendingResolution:null,dispute:null,trades:22,volume:1950},
+  m4:{title:"Board approves pivot to AI-first product strategy by June",category:"Strategy",type:"binary",q:[30,-15],deadline:"2026-06-30",creator:"CEO Office",department:"Strategy",resolutionSource:"Board Minutes",resolutionVerifier:"COO",description:"CEO signalled AI priority at all-hands. CPO leading feasibility study.",resolved:null,pendingResolution:null,dispute:null,trades:56,volume:5100},
+  m5:{title:"Engineering headcount exceeds 200 by year-end",category:"Operations",type:"scalar",q:[0,8],deadline:"2026-12-31",creator:"VP Engineering",department:"Engineering",resolutionSource:"HR System",resolutionVerifier:"CHRO",description:"Current: 156. Approved req for 60 new hires. Attrition at 12%.",resolved:null,pendingResolution:null,dispute:null,trades:18,volume:1400},
+  m6:{title:"Series C closes at $500M+ valuation",category:"M&A",type:"scalar",q:[15,0],deadline:"2026-08-31",creator:"CFO",department:"Finance",resolutionSource:"Term Sheet",resolutionVerifier:"CEO Office",description:"Term sheets from 3 VCs. Lead investor DD wrapping up.",resolved:null,pendingResolution:null,dispute:null,trades:39,volume:3600},
+  m7:{title:"Customer NPS improves to 60+ (currently 42)",category:"Product",type:"scalar",q:[-5,10],deadline:"2026-09-30",creator:"CX Team",department:"Customer Experience",resolutionSource:"NPS Survey Tool",resolutionVerifier:"CXO",description:"Key drivers: support response time and onboarding.",resolved:null,pendingResolution:null,dispute:null,trades:15,volume:1100},
+  m8:{title:"Q2 revenue hits $18M target",category:"Sales",type:"scalar",q:[5,3],deadline:"2026-06-30",creator:"CRO",department:"Sales",resolutionSource:"ERP System",resolutionVerifier:"CFO",description:"Q1 closed at $15.2M. Pipeline coverage: 3.2x for Q2.",resolved:"yes",pendingResolution:null,dispute:null,trades:41,volume:3800},
 };
 
 const MOCK_LEADERS=[
@@ -104,6 +126,9 @@ function App(){
   const [markets,setMarkets]=useState({});
   const [positions,setPositions]=useState([]);
   const [tradeHistory,setTradeHistory]=useState([]);
+  const [firstEstimates,setFirstEstimates]=useState({});
+  const [showEstimate,setShowEstimate]=useState(false);
+  const [reputation,setReputation]=useState(null);
   const [selMkt,setSelMkt]=useState(null);
   const [showCreate,setShowCreate]=useState(false);
   const [showTrade,setShowTrade]=useState(null);
@@ -120,7 +145,6 @@ function App(){
 
   useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(null),3000);return()=>clearTimeout(t)}},[toast]);
 
-  // Firebase: seed + listen markets
   useEffect(()=>{
     const ref=db.ref('markets');
     ref.once('value').then(s=>{if(!s.exists())ref.set(SEEDS);setDbOk(true)}).catch(()=>setDbOk(false));
@@ -128,7 +152,21 @@ function App(){
     return()=>ref.off('value',l);
   },[]);
 
-  // Session restore from localStorage
+  /* Phase 5: quarterly token check */
+  const checkQuarterlyTokens=(userId,existingCredits)=>{
+    const q=currentQuarter();
+    db.ref('user_trades/'+userId+'/lastTokenQuarter').once('value').then(s=>{
+      if(s.val()!==q){
+        const newCr=(existingCredits||0)+1000;
+        db.ref('user_trades/'+userId+'/credits').set(newCr);
+        db.ref('user_trades/'+userId+'/lastTokenQuarter').set(q);
+        setCredits(newCr);
+        setToast('New quarter! 1,000 PredictCoins added.');
+      }
+    });
+  };
+
+  /* Session restore */
   useEffect(()=>{
     const saved=localStorage.getItem('predictcorp_session');
     if(!saved)return;
@@ -142,13 +180,16 @@ function App(){
           const n=d.name||name;
           setUser({name:n,avatar:(n||"A")[0].toUpperCase()});
           setCredits(d.credits||1000);
+          setFirstEstimates(d.firstEstimates||{});
+          setReputation(d.reputation||null);
           setView("markets");
+          checkQuarterlyTokens(savedUid,d.credits||1000);
         }else{localStorage.removeItem('predictcorp_session')}
       });
     }catch(e){localStorage.removeItem('predictcorp_session')}
   },[]);
 
-  // Presence
+  /* Presence */
   useEffect(()=>{
     if(!user)return;
     const p=db.ref('presence/'+uid.current);
@@ -158,7 +199,7 @@ function App(){
     return()=>{all.off('value',l);p.remove()};
   },[user]);
 
-  // User trades listener
+  /* User trades listener */
   useEffect(()=>{
     if(!user)return;
     const ref=db.ref('user_trades/'+uid.current);
@@ -168,6 +209,8 @@ function App(){
       setCredits(d.credits||1000);
       setPositions(d.positions?Object.values(d.positions):[]);
       setTradeHistory(d.history?Object.values(d.history).reverse():[]);
+      setFirstEstimates(d.firstEstimates||{});
+      setReputation(d.reputation||null);
     });
     return()=>ref.off('value',l);
   },[user]);
@@ -181,14 +224,18 @@ function App(){
           uid.current=existingUid;
           const u={name:data.name,avatar:data.name[0].toUpperCase()};
           setUser(u);setCredits(data.credits||1000);
+          setFirstEstimates(data.firstEstimates||{});
+          setReputation(data.reputation||null);
           localStorage.setItem('predictcorp_session',JSON.stringify({uid:existingUid,name:data.name}));
           setView("markets");setToast(`Welcome back ${u.name}! Session restored.`);
+          checkQuarterlyTokens(existingUid,data.credits||1000);
         }else{
           const id='u_'+Math.random().toString(36).substr(2,9);
           uid.current=id;
           const u={name:trimmed,avatar:trimmed[0].toUpperCase()};
           setUser(u);setCredits(1000);
-          db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name});
+          const q=currentQuarter();
+          db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name,lastTokenQuarter:q});
           localStorage.setItem('predictcorp_session',JSON.stringify({uid:id,name:u.name}));
           setView("markets");setToast(`Welcome ${u.name}! 1,000 PredictCoins credited.`);
         }
@@ -199,7 +246,8 @@ function App(){
       uid.current=id;
       const u={name:"Anon_"+id.slice(2,6),avatar:"A"};
       setUser(u);setCredits(1000);
-      db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name});
+      const q=currentQuarter();
+      db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name,lastTokenQuarter:q});
       localStorage.setItem('predictcorp_session',JSON.stringify({uid:id,name:u.name}));
       setView("markets");setToast(`Welcome ${u.name}! 1,000 PredictCoins credited.`);
       if(cb)cb();
@@ -214,6 +262,9 @@ function App(){
     db.ref('markets/'+mktId).transaction(c=>{
       if(!c)return c;const cq=c.q||[0,0];cq[outcome]+=shares;c.q=cq;c.trades=(c.trades||0)+1;c.volume=(c.volume||0)+Math.round(cost);return c;
     });
+    /* Phase 7: hourly snapshot */
+    const hourKey=new Date().toISOString().slice(0,13).replace(/[^0-9]/g,'');
+    db.ref('snapshots/'+mktId+'/'+hourKey).transaction(v=>v!==null?v:LMSR.price(newQ,0));
     const id=uid.current;const pk=`${mktId}_${outcome}`;
     const ex=positions.find(p=>p.key===pk);
     const np=ex?{...ex,shares:ex.shares+shares,avgCost:(ex.avgCost*ex.shares+cost)/(ex.shares+shares)}:{key:pk,marketId:mktId,outcome,shares,avgCost:cost/shares,title:m.title};
@@ -224,29 +275,76 @@ function App(){
     setToast(`Bought ${shares} ${outcome===0?"YES":"NO"} for ${cost.toFixed(1)} cr`);setShowTrade(null);
   };
 
-  const createMkt=(title,cat,dl,desc)=>{
-    db.ref('markets/m'+Date.now()).set({title,category:cat,q:[0,0],deadline:dl,creator:user.name,description:desc||"",resolved:null,trades:0,volume:0});
+  const createMkt=(title,cat,dl,desc,type,dept,resSrc,resVer)=>{
+    db.ref('markets/m'+Date.now()).set({title,category:cat,type:type||"binary",q:[0,0],deadline:dl,creator:user.name,department:dept,resolutionSource:resSrc,resolutionVerifier:resVer,description:desc||"",resolved:null,pendingResolution:null,dispute:null,trades:0,volume:0});
     setShowCreate(false);setToast(`Market created: "${title}"`);
   };
 
-  const resolve=(mktId,outcome)=>{
+  /* Phase 6: creator claims resolution */
+  const claimResolution=(mktId,outcome)=>{
+    db.ref('markets/'+mktId+'/pendingResolution').set({outcome,claimedBy:user.name,claimedAt:Date.now()});
+    setShowResolve(null);setToast('Resolution claimed. Awaiting verifier confirmation.');
+  };
+
+  /* Phase 6: verifier confirms — triggers payouts + Phase 4 reputation */
+  const confirmResolution=(mktId,outcome)=>{
     db.ref('markets/'+mktId+'/resolved').set(outcome);
+    db.ref('markets/'+mktId+'/pendingResolution').set(null);
     db.ref('user_trades').once('value').then(s=>{
       if(!s.exists())return;
+      const outcomeNum=outcome==="yes"?0:1;
       Object.entries(s.val()).forEach(([uid2,ud])=>{
         if(!ud.positions)return;
         Object.values(ud.positions).forEach(pos=>{
           if(pos.marketId===mktId&&((outcome==="yes"&&pos.outcome===0)||(outcome==="no"&&pos.outcome===1)))
             db.ref('user_trades/'+uid2+'/credits').transaction(c=>(c||0)+pos.shares);
         });
+        /* Phase 4: Brier score */
+        const fe=ud.firstEstimates&&ud.firstEstimates[mktId];
+        const hasPos=ud.positions&&Object.values(ud.positions).some(p=>p.marketId===mktId);
+        if(fe!=null&&hasPos){
+          const estimate=(fe.estimate||0)/100;
+          const brier=(estimate-outcomeNum)*(estimate-outcomeNum);
+          db.ref('user_trades/'+uid2+'/reputation').transaction(r=>{
+            if(!r)return{brierSum:brier,marketCount:1};
+            return{brierSum:(r.brierSum||0)+brier,marketCount:(r.marketCount||0)+1};
+          });
+        }
       });
     });
-    setShowResolve(null);setToast(`Resolved ${outcome.toUpperCase()}! Payouts sent.`);
+    setToast(`Resolved ${outcome.toUpperCase()}! Payouts sent.`);
+  };
+
+  /* Phase 6: dispute */
+  const disputeResolution=(mktId,reason)=>{
+    db.ref('markets/'+mktId+'/dispute').set({filedBy:user.name,reason,filedAt:Date.now()});
+    setToast('Dispute filed. Governance panel notified.');
+  };
+
+  /* Phase 3: submit first estimate */
+  const submitEstimate=(mktId,estimate)=>{
+    db.ref('user_trades/'+uid.current+'/firstEstimates/'+mktId).set({estimate,submittedAt:Date.now()});
+    setFirstEstimates(fe=>({...fe,[mktId]:{estimate,submittedAt:Date.now()}}));
+    setShowEstimate(false);
+  };
+
+  const openDetail=(mktId)=>{
+    setSelMkt(mktId);
+    const m=markets[mktId];
+    const isRestricted=user&&(user.name===(m?.creator)||user.name===(m?.resolutionVerifier));
+    if(!firstEstimates[mktId]&&!isRestricted&&m&&!m.resolved){
+      setShowEstimate(true);
+    }
+    setView("detail");
   };
 
   const totalPnl=useMemo(()=>positions.reduce((s,p)=>{const m=markets[p.marketId];if(!m)return s;const cp=LMSR.price(m.q||[0,0],p.outcome);return s+(cp*p.shares-p.avgCost*p.shares)},0),[positions,markets]);
   const mktList=Object.entries(markets).map(([id,m])=>({id,...m}));
-  const hasCharts = !!BarChart;
+  const hasCharts=!!BarChart;
+
+  /* Phase 4: reputation helpers */
+  const isSuperPredictor=(rep)=>rep&&rep.marketCount>=5&&(rep.brierSum/rep.marketCount)<0.10;
+  const repScore=(rep)=>rep&&rep.marketCount>0?((1-(rep.brierSum/rep.marketCount))*100).toFixed(0):null;
 
   // ── Toast ──
   const Toast=()=>toast&&<div className="fixed top-20 right-4 z-[100] bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 text-sm toast-anim"><I.CheckCircle size={15} className="text-green-400"/>{toast}</div>;
@@ -257,10 +355,10 @@ function App(){
       <div className="flex items-center gap-2 cursor-pointer" onClick={()=>{setView("markets");setSelMkt(null)}}>
         <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center"><I.Target size={16} color="white"/></div>
         <span className="font-bold text-gray-900">PredictCorp</span>
-        {liveN>0&&<span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full"><span className="w-1.5 h-1.5 bg-green-500 rounded-full live-dot"></span>{liveN}</span>}
+        {liveN>0&&<span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full"><span className="w-1.5 h-1.5 bg-green-500 rounded-full live-dot"/>{participationRange(liveN)}</span>}
       </div>
       <div className="flex gap-1">
-        {[{k:"markets",icon:"TrendingUp",l:"Markets"},{k:"portfolio",icon:"Wallet",l:"Portfolio"},{k:"leaderboard",icon:"Trophy",l:"Board"},{k:"analytics",icon:"BarChart3",l:"Stats"}].map(({k,icon,l})=>{
+        {[{k:"markets",icon:"TrendingUp",l:"Markets"},{k:"dashboard",icon:"LayoutDashboard",l:"Dashboard"},{k:"portfolio",icon:"Wallet",l:"Portfolio"},{k:"leaderboard",icon:"Trophy",l:"Board"},{k:"analytics",icon:"BarChart3",l:"Stats"}].map(({k,icon,l})=>{
           const Ic=I[icon];
           return <button key={k} onClick={()=>{setView(k);setSelMkt(null)}} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium ${view===k||(view==="detail"&&k==="markets")?"bg-indigo-600 text-white":"text-gray-500 hover:bg-gray-100"}`}><Ic size={13}/>{l}</button>;
         })}
@@ -295,13 +393,13 @@ function App(){
             className={`w-full bg-white bg-opacity-10 border ${nameErr?"border-red-400":"border-indigo-400"} rounded-lg px-4 py-2.5 text-white placeholder-indigo-300 outline-none focus:border-white mb-1 text-sm`}/>
           {nameErr?<p className="text-xs text-red-400 mb-2">Enter your name to connect a wallet.</p>:<div className="mb-2"/>}
           <button onClick={()=>login(nm)} className="w-full flex items-center justify-center gap-2 bg-white text-indigo-900 font-semibold py-3 rounded-xl hover:bg-indigo-50 text-sm">
-            <I.LogIn size={16}/>Join & Get 1,000 Credits
+            <I.LogIn size={16}/>Join &amp; Get 1,000 Credits
           </button>
         </div>
         <button onClick={()=>{if(!nm.trim()){setNameErr(true);return}login(nm,()=>setShowWallet(true))}} className="text-indigo-300 hover:text-white text-sm flex items-center gap-1"><I.Wallet size={14}/>or connect crypto wallet</button>
         <div className="grid grid-cols-3 gap-4 max-w-2xl mt-8">
           {[["Incentive-Aligned","Credits on the line. No groupthink. 73% more accurate than surveys.","Zap"],
-            ["Token Rewards","Earn PredictCoins for accuracy. Optional crypto wallet for on-chain settlement.","DollarSign"],
+            ["Token Rewards","Earn PredictCoins for accuracy. Quarterly allocation. Super Predictor recognition.","DollarSign"],
             ["Real-Time Signal","Live dashboards. Track conviction shifts before they appear in reports.","TrendingUp"]
           ].map(([t,d,icon])=>{
             const Ic=I[icon];
@@ -316,23 +414,37 @@ function App(){
     );
   };
 
+  // ── Type badge (Phase 1) ──
+  const TypeBadge=({type})=>{
+    if(!type)return null;
+    const t=TEMPLATES[type]||TEMPLATES.binary;
+    return <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{backgroundColor:t.color+"18",color:t.color}}>{t.label}</span>;
+  };
+
   // ── Card ──
   const Card=({m})=>{
     const q=m.q||[0,0];const p=LMSR.price(q,0);const res=m.resolved!=null;
+    const pending=m.pendingResolution&&!m.resolved&&!m.dispute;
+    const disputed=m.dispute&&!m.resolved;
     return(
-      <div onClick={()=>{setSelMkt(m.id);setView("detail")}} className={`bg-white rounded-xl border hover:shadow-md hover:border-indigo-200 cursor-pointer ${res?"opacity-70":""}`}>
+      <div onClick={()=>openDetail(m.id)} className={`bg-white rounded-xl border hover:shadow-md hover:border-indigo-200 cursor-pointer ${res?"opacity-70":""}`}>
         <div className="p-4">
-          <div className="flex items-start justify-between mb-2">
+          <div className="flex items-start justify-between mb-2 gap-1 flex-wrap">
             <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{backgroundColor:(CAT_COL[m.category]||"#666")+"18",color:CAT_COL[m.category]||"#666"}}>{m.category}</span>
-            {res?<span className={`text-xs font-bold px-2 py-0.5 rounded-full ${m.resolved==="yes"?"bg-green-100 text-green-700":"bg-red-100 text-red-700"}`}>{String(m.resolved).toUpperCase()}</span>
-            :<div className="flex items-center gap-1 text-xs text-gray-400"><I.Clock size={11}/>{m.deadline}</div>}
+            <div className="flex gap-1 items-center flex-wrap">
+              <TypeBadge type={m.type}/>
+              {res?<span className={`text-xs font-bold px-2 py-0.5 rounded-full ${m.resolved==="yes"?"bg-green-100 text-green-700":"bg-red-100 text-red-700"}`}>{String(m.resolved).toUpperCase()}</span>
+              :pending?<span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting Verification</span>
+              :disputed?<span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Under Review</span>
+              :<div className="flex items-center gap-1 text-xs text-gray-400"><I.Clock size={11}/>{m.deadline}</div>}
+            </div>
           </div>
           <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-3 min-h-[2.5rem]">{m.title}</h3>
           <div className="mb-2">
             <div className="flex justify-between text-xs mb-1"><span className="font-semibold text-green-600">YES {pct(p)}</span><span className="font-semibold text-red-500">NO {pct(1-p)}</span></div>
             <div className="w-full bg-red-100 rounded-full h-2.5"><div className="bg-green-500 h-2.5 rounded-full transition-all" style={{width:`${p*100}%`}}/></div>
           </div>
-          <div className="flex justify-between text-xs text-gray-400"><span>{m.trades||0} trades</span><span>{fmt(m.volume||0)} vol</span></div>
+          <div className="flex justify-between text-xs text-gray-400"><span>{participationRange(m.trades||0)}</span><span>{fmt(m.volume||0)} vol</span></div>
         </div>
       </div>
     );
@@ -360,23 +472,41 @@ function App(){
     const q=m.q||[0,0];const p=LMSR.price(q,0);const res=!!m.resolved;
     const myP=positions.filter(x=>x.marketId===selMkt);const myT=tradeHistory.filter(x=>x.marketId===selMkt);
     const isCr=m.creator===user?.name;
+    const isVerifier=m.resolutionVerifier===user?.name;
+    const isRestricted=isCr||isVerifier;
+    const pending=m.pendingResolution;
+    const disputed=m.dispute;
+    const hasTraded=positions.some(x=>x.marketId===selMkt)||tradeHistory.some(x=>x.marketId===selMkt);
+    const disputeWindow=pending&&!disputed&&(Date.now()-pending.claimedAt)<48*3600*1000;
+    const [disputeReason,setDisputeReason]=useState("");
+    const [showDisputeInput,setShowDisputeInput]=useState(false);
     return(
       <div className="max-w-5xl mx-auto">
         <button onClick={()=>setView("markets")} className="text-indigo-600 text-sm font-medium mb-3 hover:underline">← Back</button>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-xl border p-5">
-              <div className="flex items-start justify-between mb-2">
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{backgroundColor:(CAT_COL[m.category]||"#666")+"18",color:CAT_COL[m.category]||"#666"}}>{m.category}</span>
+              <div className="flex items-start justify-between mb-2 flex-wrap gap-1">
+                <div className="flex gap-1 items-center"><span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{backgroundColor:(CAT_COL[m.category]||"#666")+"18",color:CAT_COL[m.category]||"#666"}}>{m.category}</span><TypeBadge type={m.type}/></div>
                 {res&&<span className={`text-sm font-bold px-3 py-1 rounded-full ${m.resolved==="yes"?"bg-green-100 text-green-700":"bg-red-100 text-red-700"}`}>{String(m.resolved).toUpperCase()}</span>}
+                {pending&&!res&&!disputed&&<span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting Verification</span>}
+                {disputed&&!res&&<span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Under Review — Governance Panel</span>}
               </div>
               <h2 className="text-lg font-bold text-gray-900 mb-2">{m.title}</h2>
               <p className="text-gray-500 text-sm mb-4">{m.description}</p>
+              {pending&&!res&&<div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-sm">
+                <p className="font-medium text-amber-800">Resolution claimed: <span className="font-bold">{pending.outcome?.toUpperCase()}</span> by {pending.claimedBy}</p>
+                {disputeWindow&&hasTraded&&!showDisputeInput&&<button onClick={()=>setShowDisputeInput(true)} className="mt-2 text-xs text-red-600 flex items-center gap-1 hover:underline"><I.Flag size={12}/>Dispute this resolution (48h window)</button>}
+                {showDisputeInput&&<div className="mt-2 space-y-1"><input value={disputeReason} onChange={e=>setDisputeReason(e.target.value)} placeholder="Reason for dispute..." className="w-full border rounded px-2 py-1 text-xs outline-none"/><div className="flex gap-2"><button onClick={()=>{if(disputeReason.trim())disputeResolution(selMkt,disputeReason);setShowDisputeInput(false)}} className="bg-red-600 text-white text-xs px-2 py-1 rounded">Submit</button><button onClick={()=>setShowDisputeInput(false)} className="text-xs text-gray-500">Cancel</button></div></div>}
+              </div>}
+              {disputed&&!res&&<div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 text-sm"><p className="font-medium text-red-800">Dispute filed by {disputed.filedBy}: "{disputed.reason}"</p></div>}
               <div className="mb-4">
                 <div className="flex justify-between mb-1"><span className="text-lg font-bold text-green-600">YES {pct(p)}</span><span className="text-lg font-bold text-red-500">NO {pct(1-p)}</span></div>
                 <div className="w-full bg-red-100 rounded-full h-5"><div className="bg-green-500 h-5 rounded-full transition-all" style={{width:`${p*100}%`}}/></div>
               </div>
-              <div className="grid grid-cols-4 gap-2">{[["Trades",m.trades||0],["Volume",fmt(m.volume||0)],["Deadline",m.deadline],["Creator",m.creator]].map(([l,v])=><div key={l} className="bg-gray-50 rounded-lg p-2.5 text-center"><p className="text-xs text-gray-400">{l}</p><p className="font-semibold text-sm">{v}</p></div>)}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">{[["Trades",participationRange(m.trades||0)],["Volume",fmt(m.volume||0)],["Deadline",m.deadline],["Creator",m.creator]].map(([l,v])=><div key={l} className="bg-gray-50 rounded-lg p-2.5 text-center"><p className="text-xs text-gray-400">{l}</p><p className="font-semibold text-xs truncate">{v}</p></div>)}</div>
+              {(m.department||m.resolutionSource||m.resolutionVerifier)&&<div className="mt-3 grid grid-cols-3 gap-2">{[["Department",m.department],["Resolution Source",m.resolutionSource],["Verifier",m.resolutionVerifier]].map(([l,v])=>v?<div key={l} className="bg-indigo-50 rounded-lg p-2 text-center"><p className="text-xs text-indigo-400">{l}</p><p className="font-medium text-xs text-indigo-700 truncate">{v}</p></div>:null)}</div>}
+              {firstEstimates[selMkt]&&<div className="mt-3 bg-gray-50 rounded-lg p-2.5 text-xs text-gray-500">Your initial estimate: <span className="font-bold text-indigo-600">{firstEstimates[selMkt].estimate}% YES</span></div>}
             </div>
             {myP.length>0&&<div className="bg-white rounded-xl border p-4">
               <h3 className="font-semibold text-sm mb-2">Your Positions</h3>
@@ -392,7 +522,11 @@ function App(){
             </div>}
           </div>
           <div className="space-y-4">
-            {!res&&<div className="bg-white rounded-xl border p-4 lg:sticky lg:top-16">
+            {isRestricted&&!res&&<div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-1"><I.Lock size={13} className="text-gray-500"/><span className="text-xs font-semibold text-gray-700">Restricted Participant</span></div>
+              <p className="text-xs text-gray-500">{isCr?"You created this market.":"You are the resolution verifier."} Trading is not permitted to prevent conflicts of interest.</p>
+            </div>}
+            {!isRestricted&&!res&&!pending&&!disputed&&<div className="bg-white rounded-xl border p-4 lg:sticky lg:top-16">
               <h3 className="font-semibold mb-3 text-sm">Trade</h3>
               <div className="grid grid-cols-2 gap-2.5 mb-2">
                 <button onClick={()=>setShowTrade({marketId:selMkt,outcome:0})} className="bg-green-50 border-2 border-green-200 rounded-xl p-3 text-center hover:border-green-400">
@@ -402,9 +536,15 @@ function App(){
               </div>
               <p className="text-xs text-gray-400 text-center">LMSR · b=100</p>
             </div>}
-            {isCr&&!res&&<div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
+            {pending&&!res&&!disputed&&<div className="bg-gray-50 rounded-xl border p-4"><p className="text-xs text-gray-500 text-center">Trading paused — resolution pending verification.</p></div>}
+            {isCr&&!res&&!pending&&!disputed&&<div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
               <div className="flex items-center gap-2 mb-2"><I.Lock size={13} className="text-amber-600"/><span className="text-xs font-semibold text-amber-800">Creator Controls</span></div>
-              <button onClick={()=>setShowResolve({id:selMkt,...m})} className="w-full bg-amber-600 text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-1"><I.Unlock size={13}/>Resolve</button>
+              <button onClick={()=>setShowResolve({id:selMkt,...m})} className="w-full bg-amber-600 text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-1"><I.Unlock size={13}/>Claim Resolution</button>
+            </div>}
+            {isVerifier&&pending&&!res&&!disputed&&<div className="bg-indigo-50 rounded-xl border border-indigo-200 p-4">
+              <div className="flex items-center gap-2 mb-2"><I.Shield size={13} className="text-indigo-600"/><span className="text-xs font-semibold text-indigo-800">Verifier Controls</span></div>
+              <p className="text-xs text-indigo-600 mb-2">Creator claimed: <span className="font-bold">{pending.outcome?.toUpperCase()}</span></p>
+              <button onClick={()=>confirmResolution(selMkt,pending.outcome)} className="w-full bg-indigo-600 text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-1"><I.CheckCircle size={13}/>Confirm &amp; Resolve</button>
             </div>}
           </div>
         </div>
@@ -416,6 +556,7 @@ function App(){
   const Portfolio=()=>{
     const pw=positions.map(p=>{const m=markets[p.marketId];const cp=m?LMSR.price(m.q||[0,0],p.outcome):0;return{...p,cp,val:cp*p.shares,pnl:(cp-p.avgCost)*p.shares}});
     const tv=pw.reduce((s,p)=>s+p.val,0);
+    const rs=repScore(reputation);
     return(
       <div className="max-w-5xl mx-auto space-y-5">
         <h2 className="text-xl font-bold">Portfolio</h2>
@@ -425,6 +566,11 @@ function App(){
             return <div key={l} className="bg-white rounded-xl border p-3"><div className="flex items-center gap-1.5 mb-1"><Ic size={13} className="text-indigo-500"/><span className="text-xs text-gray-500">{l}</span></div><p className="text-xl font-bold">{v}</p></div>;
           })}
         </div>
+        {rs&&<div className="bg-white rounded-xl border p-4 flex items-center gap-3">
+          <I.Star size={20} color={isSuperPredictor(reputation)?"#f59e0b":"#9ca3af"} fill={isSuperPredictor(reputation)?"#f59e0b":"none"}/>
+          <div><p className="text-sm font-semibold">{isSuperPredictor(reputation)?"⭐ Super Predictor":"Forecaster"}</p><p className="text-xs text-gray-500">Accuracy score: {rs}/100 · {reputation.marketCount} market{reputation.marketCount!==1?"s":""} resolved</p></div>
+          {isSuperPredictor(reputation)&&<span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">Top forecaster</span>}
+        </div>}
         {positions.length===0?<div className="bg-white rounded-xl border p-8 text-center"><p className="text-gray-500 text-sm mb-3">No positions yet.</p><button onClick={()=>setView("markets")} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm">Browse Markets</button></div>
         :<div className="bg-white rounded-xl border overflow-x-auto">
           <table className="w-full"><thead className="bg-gray-50"><tr>{["Market","Side","Shares","Avg","Now","P&L"].map(h=><th key={h} className="text-left text-xs font-medium text-gray-500 uppercase px-3 py-2">{h}</th>)}</tr></thead>
@@ -441,18 +587,19 @@ function App(){
   // ── Leaderboard ──
   const Leaderboard=()=>{
     const [fb,setFb]=useState([]);
-    useEffect(()=>{const l=db.ref('user_trades').on('value',s=>{if(!s.exists())return;setFb(Object.entries(s.val()).map(([,d])=>({name:d.name||"Anon",score:Math.round(d.credits||0),live:true})).sort((a,b)=>b.score-a.score))});return()=>db.ref('user_trades').off('value',l)},[]);
-    const all=[...fb,...MOCK_LEADERS.map(m=>({...m,live:false}))].sort((a,b)=>b.score-a.score);
+    useEffect(()=>{const l=db.ref('user_trades').on('value',s=>{if(!s.exists())return;setFb(Object.entries(s.val()).map(([,d])=>({name:d.name||"Anon",score:Math.round(d.credits||0),live:true,rep:d.reputation||null})).sort((a,b)=>b.score-a.score))});return()=>db.ref('user_trades').off('value',l)},[]);
+    const all=[...fb,...MOCK_LEADERS.map(m=>({...m,live:false,rep:null}))].sort((a,b)=>b.score-a.score);
     return(
       <div className="max-w-3xl mx-auto space-y-5">
         <h2 className="text-xl font-bold">Leaderboard</h2>
         <div className="bg-white rounded-xl border overflow-hidden">
-          <table className="w-full"><thead className="bg-gray-50"><tr>{["#","Forecaster","Score",""].map(h=><th key={h} className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-2">{h}</th>)}</tr></thead>
-          <tbody className="divide-y divide-gray-100">{all.slice(0,15).map((p,i)=>{const isU=p.name===user?.name;return(
+          <table className="w-full"><thead className="bg-gray-50"><tr>{["#","Forecaster","Score","Accuracy",""].map(h=><th key={h} className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-2">{h}</th>)}</tr></thead>
+          <tbody className="divide-y divide-gray-100">{all.slice(0,15).map((p,i)=>{const isU=p.name===user?.name;const sp=isSuperPredictor(p.rep);const rs2=repScore(p.rep);return(
             <tr key={i} className={isU?"bg-indigo-50":"hover:bg-gray-50"}>
               <td className="px-4 py-2.5">{i<3?["\u{1F947}","\u{1F948}","\u{1F949}"][i]:<span className="text-xs text-gray-400">#{i+1}</span>}</td>
-              <td className="px-4 py-2.5 text-sm font-medium flex items-center gap-2">{p.name}{p.live&&<span className="w-1.5 h-1.5 bg-green-500 rounded-full live-dot"/>}</td>
+              <td className="px-4 py-2.5 text-sm font-medium"><div className="flex items-center gap-1.5">{p.name}{p.live&&<span className="w-1.5 h-1.5 bg-green-500 rounded-full live-dot"/>}{sp&&<span title="Super Predictor">⭐</span>}</div></td>
               <td className="px-4 py-2.5 text-sm font-bold text-indigo-600">{p.score.toLocaleString()}</td>
+              <td className="px-4 py-2.5 text-xs text-gray-500">{rs2?`${rs2}/100`:"—"}</td>
               <td className="px-4 py-2.5">{isU&&<span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">You</span>}</td>
             </tr>)})}</tbody></table>
         </div>
@@ -474,12 +621,12 @@ function App(){
             return <div key={l} className="bg-white rounded-xl border p-3"><div className="flex items-center gap-1.5 mb-1"><Ic size={13} className="text-indigo-500"/><span className="text-xs text-gray-500">{l}</span></div><p className="text-xl font-bold">{v}</p></div>;
           })}
         </div>
-        {hasCharts ? (
+        {hasCharts?(
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="bg-white rounded-xl border p-4"><h3 className="font-semibold text-sm mb-3">Probabilities</h3><div className="h-56"><ResponsiveContainer><BarChart data={pd} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/><XAxis type="number" domain={[0,100]} tickFormatter={v=>`${v}%`} tick={{fontSize:10}}/><YAxis type="category" dataKey="name" tick={{fontSize:9}} width={100}/><Tooltip formatter={v=>`${v}%`}/><Bar dataKey="yes" name="YES" fill="#059669" stackId="a"/><Bar dataKey="no" name="NO" fill="#dc2626" stackId="a"/></BarChart></ResponsiveContainer></div></div>
             <div className="bg-white rounded-xl border p-4"><h3 className="font-semibold text-sm mb-3">Volume by Category</h3><div className="h-56"><ResponsiveContainer><PieChart><Pie data={cd} cx="50%" cy="50%" outerRadius={75} dataKey="volume" label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`}>{cd.map((_,i)=><Cell key={i} fill={COLORS[i]}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer></div></div>
           </div>
-        ) : (
+        ):(
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="bg-white rounded-xl border p-4">
               <h3 className="font-semibold text-sm mb-3">Market Probabilities</h3>
@@ -518,6 +665,82 @@ function App(){
     );
   };
 
+  // ── Dashboard — Phase 7 ──
+  const Dashboard=()=>{
+    const [snapshots,setSnapshots]=useState({});
+    useEffect(()=>{
+      const act=mktList.filter(m=>!m.resolved);
+      if(act.length===0)return;
+      Promise.all(act.map(m=>db.ref('snapshots/'+m.id).orderByKey().limitToLast(48).once('value').then(s=>({id:m.id,snaps:s.exists()?s.val():{}}))));
+    },[]);
+    useEffect(()=>{
+      const act=mktList.filter(m=>!m.resolved);
+      if(act.length===0)return;
+      Promise.all(act.map(m=>db.ref('snapshots/'+m.id).orderByKey().limitToLast(48).once('value').then(s=>({id:m.id,snaps:s.exists()?s.val():{}})))).then(results=>{
+        const s={};results.forEach(r=>{s[r.id]=r.snaps});setSnapshots(s);
+      });
+    },[markets]);
+    const getTrend=(mktId,currentP)=>{
+      const snaps=snapshots[mktId];if(!snaps)return null;
+      const keys=Object.keys(snaps).sort();if(keys.length<2)return null;
+      const old24Key=new Date(Date.now()-24*3600*1000).toISOString().slice(0,13).replace(/[^0-9]/g,'');
+      const oldKeys=keys.filter(k=>k<=old24Key);
+      const oldP=oldKeys.length>0?snaps[oldKeys[oldKeys.length-1]]:snaps[keys[0]];
+      const diff=currentP-oldP;
+      if(Math.abs(diff)<0.03)return"stable";
+      return diff>0?"up":"down";
+    };
+    const act=mktList.filter(m=>!m.resolved);
+    return(
+      <div className="max-w-6xl mx-auto space-y-5">
+        <div><h2 className="text-xl font-bold">Early-Warning Dashboard</h2><p className="text-gray-500 text-xs">Live market probabilities for leadership. Markets below 40% YES are flagged.</p></div>
+        <div className="bg-white rounded-xl border overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50"><tr>{["Market","Type","YES Probability","Trend","Participation","Status"].map(h=><th key={h} className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-gray-100">
+              {act.map(m=>{
+                const q=m.q||[0,0];const p=LMSR.price(q,0);
+                const trend=getTrend(m.id,p);
+                const warn=p<0.40;
+                return(
+                  <tr key={m.id} className={`${warn?"bg-amber-50":"hover:bg-gray-50"} cursor-pointer`} onClick={()=>openDetail(m.id)}>
+                    <td className="px-4 py-3 text-sm font-medium max-w-[200px]"><p className="truncate">{m.title}</p><p className="text-xs text-gray-400">{m.deadline}</p></td>
+                    <td className="px-4 py-3"><TypeBadge type={m.type}/></td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 bg-red-100 rounded-full h-2"><div className="bg-green-500 h-2 rounded-full" style={{width:`${p*100}%`}}/></div>
+                        <span className={`text-sm font-bold ${warn?"text-amber-700":"text-green-700"}`}>{pct(p)}</span>
+                        {warn&&<I.AlertCircle size={14} className="text-amber-500"/>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {trend==="up"&&<span className="flex items-center gap-1 text-green-600 text-xs font-medium"><I.ArrowUp size={13}/>Rising</span>}
+                      {trend==="down"&&<span className="flex items-center gap-1 text-red-500 text-xs font-medium"><I.ArrowDown size={13}/>Falling</span>}
+                      {trend==="stable"&&<span className="text-gray-400 text-xs">— Stable</span>}
+                      {!trend&&<span className="text-gray-300 text-xs">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{participationRange(m.trades||0)}</td>
+                    <td className="px-4 py-3">
+                      {m.pendingResolution&&!m.dispute&&<span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Pending Verification</span>}
+                      {m.dispute&&<span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Disputed</span>}
+                      {!m.pendingResolution&&!m.dispute&&warn&&<span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Low Confidence</span>}
+                      {!m.pendingResolution&&!m.dispute&&!warn&&<span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">Active</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {act.length===0&&<p className="text-center text-gray-400 text-sm py-8">No active markets.</p>}
+        </div>
+        <div className="bg-indigo-50 rounded-xl p-4 text-sm text-indigo-700 flex items-start gap-2">
+          <I.AlertCircle size={16} className="text-indigo-500 mt-0.5 shrink-0"/>
+          <p>Markets below <span className="font-bold">40% YES probability</span> may warrant a project review or additional resource allocation. Signals complement, not replace, operational reporting.</p>
+        </div>
+      </div>
+    );
+  };
+
   // ── Modals ──
   const TradeM=()=>{
     const [sh,setSh]=useState(10);if(!showTrade)return null;
@@ -544,16 +767,38 @@ function App(){
     );
   };
 
+  // ── Create Market Modal — Phase 1 + Phase 2 ──
   const CreateM=()=>{
-    const [t,setT]=useState("");const [c,setC]=useState("Custom");const [dl,setDl]=useState(new Date().toISOString().split('T')[0]);const [d,setD]=useState("");
+    const [t,setT]=useState("");
+    const [c,setC]=useState("Custom");
+    const [dl,setDl]=useState(new Date().toISOString().split('T')[0]);
+    const [d,setD]=useState("");
+    const [type,setType]=useState("binary");
+    const [dept,setDept]=useState("");
+    const [resSrc,setResSrc]=useState("");
+    const [resVer,setResVer]=useState("");
     if(!showCreate)return null;
+    const canCreate=t.trim()&&dept.trim()&&resSrc.trim()&&resVer.trim();
     return(
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={()=>setShowCreate(false)}>
-        <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-2xl" onClick={e=>e.stopPropagation()}>
+        <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]" onClick={e=>e.stopPropagation()}>
           <div className="flex justify-between items-center mb-3"><h3 className="font-bold flex items-center gap-2"><I.Plus size={18} className="text-green-600"/>New Market</h3><button onClick={()=>setShowCreate(false)}><I.X size={18} className="text-gray-400"/></button></div>
           <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1.5 block">Forecast Type</label>
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(TEMPLATES).map(([k,v])=>(
+                  <button key={k} type="button" onClick={()=>setType(k)}
+                    className={`py-2 px-1 rounded-lg border-2 text-xs font-semibold text-center transition-all`}
+                    style={type===k?{borderColor:v.color,backgroundColor:v.color,color:"white"}:{borderColor:"#e5e7eb",color:"#4b5563"}}>
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">{TEMPLATES[type].hint}</p>
+            </div>
             <div><label className="text-xs font-medium text-gray-700 mb-1 block">Question (YES/NO)</label>
-              <input value={t} onChange={e=>setT(e.target.value)} placeholder='e.g. "Will this presentation overrun 15 mins?"'
+              <input value={t} onChange={e=>setT(e.target.value)} placeholder={TEMPLATES[type].hint}
                 className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/></div>
             <div className="grid grid-cols-2 gap-2">
               <div><label className="text-xs font-medium text-gray-700 mb-1 block">Category</label>
@@ -563,27 +808,65 @@ function App(){
             </div>
             <div><label className="text-xs font-medium text-gray-700 mb-1 block">Context</label>
               <textarea value={d} onChange={e=>setD(e.target.value)} rows={2} placeholder="Help traders decide..." className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"/></div>
+            <div className="border-t pt-3 space-y-2">
+              <p className="text-xs font-semibold text-gray-600 flex items-center gap-1"><I.Shield size={12} className="text-indigo-500"/>Governance — required</p>
+              <div><label className="text-xs font-medium text-gray-700 mb-1 block">Responsible Department <span className="text-red-500">*</span></label>
+                <input value={dept} onChange={e=>setDept(e.target.value)} placeholder="e.g. Finance, Product, Sales..."
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/></div>
+              <div><label className="text-xs font-medium text-gray-700 mb-1 block">Resolution Source <span className="text-red-500">*</span></label>
+                <input value={resSrc} onChange={e=>setResSrc(e.target.value)} placeholder="e.g. ERP System, Board Minutes..."
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/></div>
+              <div><label className="text-xs font-medium text-gray-700 mb-1 block">Resolution Verifier (username) <span className="text-red-500">*</span></label>
+                <input value={resVer} onChange={e=>setResVer(e.target.value)} placeholder="Name of the verifier..."
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/>
+                <p className="text-xs text-gray-400 mt-0.5">This person confirms the outcome before payouts. They cannot trade in this market.</p></div>
+            </div>
           </div>
-          <button onClick={()=>t&&createMkt(t,c,dl,d)} disabled={!t} className={`w-full mt-3 bg-green-600 text-white font-semibold py-2.5 rounded-lg hover:bg-green-700 ${!t?"opacity-50":""}`}>Create Market</button>
-          <p className="text-xs text-gray-400 mt-2 text-center">You can resolve this when the outcome is known.</p>
+          <button onClick={()=>canCreate&&createMkt(t,c,dl,d,type,dept,resSrc,resVer)} disabled={!canCreate}
+            className={`w-full mt-4 bg-green-600 text-white font-semibold py-2.5 rounded-lg hover:bg-green-700 ${!canCreate?"opacity-40":""}`}>
+            Create Market</button>
         </div>
       </div>
     );
   };
 
+  // ── Resolve Modal — Phase 6 (claim only) ──
   const ResolveM=()=>{
     if(!showResolve)return null;const m=showResolve;const q=m.q||[0,0];
     return(
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={()=>setShowResolve(null)}>
         <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl" onClick={e=>e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-2"><h3 className="font-bold">Resolve</h3><button onClick={()=>setShowResolve(null)}><I.X size={18} className="text-gray-400"/></button></div>
+          <div className="flex justify-between items-center mb-2"><h3 className="font-bold">Claim Resolution</h3><button onClick={()=>setShowResolve(null)}><I.X size={18} className="text-gray-400"/></button></div>
           <p className="text-sm text-gray-600 mb-2">{m.title}</p>
-          <p className="text-xs text-gray-400 mb-3">Final: YES {pct(LMSR.price(q,0))} · {m.trades||0} trades</p>
+          <p className="text-xs text-gray-400 mb-1">Final: YES {pct(LMSR.price(q,0))} · {participationRange(m.trades||0)}</p>
+          <p className="text-xs text-amber-600 mb-3 flex items-center gap-1"><I.Shield size={11}/>{m.resolutionVerifier} must confirm before payouts are sent.</p>
           <div className="grid grid-cols-2 gap-2.5">
-            <button onClick={()=>resolve(m.id,"yes")} className="bg-green-50 border-2 border-green-300 rounded-xl p-3.5 text-center hover:bg-green-100"><I.CheckCircle size={22} className="mx-auto text-green-600 mb-1"/><p className="font-bold text-green-700 text-sm">YES</p></button>
-            <button onClick={()=>resolve(m.id,"no")} className="bg-red-50 border-2 border-red-300 rounded-xl p-3.5 text-center hover:bg-red-100"><I.X size={22} className="mx-auto text-red-500 mb-1"/><p className="font-bold text-red-600 text-sm">NO</p></button>
+            <button onClick={()=>claimResolution(m.id,"yes")} className="bg-green-50 border-2 border-green-300 rounded-xl p-3.5 text-center hover:bg-green-100"><I.CheckCircle size={22} className="mx-auto text-green-600 mb-1"/><p className="font-bold text-green-700 text-sm">YES</p></button>
+            <button onClick={()=>claimResolution(m.id,"no")} className="bg-red-50 border-2 border-red-300 rounded-xl p-3.5 text-center hover:bg-red-100"><I.X size={22} className="mx-auto text-red-500 mb-1"/><p className="font-bold text-red-600 text-sm">NO</p></button>
           </div>
-          <p className="text-xs text-gray-400 mt-3 text-center">Winners get 1 credit per share.</p>
+        </div>
+      </div>
+    );
+  };
+
+  // ── First Estimate Modal — Phase 3 ──
+  const FirstEstimateM=()=>{
+    const [est,setEst]=useState(50);
+    if(!showEstimate||!selMkt)return null;
+    const m=markets[selMkt];if(!m)return null;
+    return(
+      <div className="fixed inset-0 bg-black bg-opacity-70 z-[60] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+          <div className="flex items-center gap-2 mb-1"><I.Target size={18} className="text-indigo-600"/><h3 className="font-bold text-gray-900">Your Independent Estimate</h3></div>
+          <p className="text-xs text-gray-500 mb-4">Before seeing the current market price, what probability of YES would you assign?</p>
+          <p className="text-sm font-semibold text-gray-800 mb-4 leading-snug">{m.title}</p>
+          <div className="mb-4">
+            <div className="flex justify-between text-xs text-gray-500 mb-1"><span>0%</span><span className="font-bold text-indigo-600 text-base">{est}% YES</span><span>100%</span></div>
+            <input type="range" min={0} max={100} value={est} onChange={e=>setEst(+e.target.value)} className="w-full accent-indigo-600"/>
+            <div className="mt-2 w-full bg-red-100 rounded-full h-3"><div className="bg-indigo-500 h-3 rounded-full transition-all" style={{width:`${est}%`}}/></div>
+          </div>
+          <button onClick={()=>submitEstimate(selMkt,est)} className="w-full bg-indigo-600 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-700">Submit &amp; View Market</button>
+          <p className="text-xs text-gray-400 mt-2 text-center">Used to track your forecasting accuracy over time.</p>
         </div>
       </div>
     );
@@ -643,9 +926,10 @@ function App(){
 
   return(
     <div className="min-h-screen bg-gray-50">
-      <Toast/><TradeM/><CreateM/><ResolveM/><WalletM/><ShareM/>
+      <Toast/><TradeM/><CreateM/><ResolveM/><WalletM/><ShareM/><FirstEstimateM/>
       {view==="landing"?<Landing/>:<><Nav/><div className="p-3 sm:p-5">
         {view==="markets"&&<Markets/>}
+        {view==="dashboard"&&<Dashboard/>}
         {view==="detail"&&<Detail/>}
         {view==="portfolio"&&<Portfolio/>}
         {view==="leaderboard"&&<Leaderboard/>}
