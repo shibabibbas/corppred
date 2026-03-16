@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PredictCorp — Corporate Prediction Markets</title>
+  <title>P&amp;G — Corporate Prediction Markets</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%234F46E5'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-family='Arial'>P</text></svg>" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
@@ -70,6 +70,7 @@ const I = {
   Shield:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
   Star:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill={p.fill||"none"} stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
   LayoutDashboard:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+  Bell:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
 };
 
 const LMSR = {
@@ -86,9 +87,9 @@ const fmt=n=>n>=1e6?`${(n/1e6).toFixed(1)}M`:n>=1e3?`${(n/1e3).toFixed(1)}K`:`${
 
 /* Phase 1: Template definitions */
 const TEMPLATES={
-  binary:{label:"Binary",color:"#1e40af",hint:'e.g. "Will Product X launch before October 1?"'},
-  scalar:{label:"Scalar",color:"#059669",hint:'e.g. "Will Q4 revenue exceed $500M?"'},
-  milestone:{label:"Milestone",color:"#7c3aed",hint:'e.g. "Will regulatory approval be obtained before Q3?"'},
+  milestone:{label:"Milestone",color:"#1e40af",hint:'e.g. "Will Product X launch before Y date?"'},
+  target:{label:"Target",color:"#059669",hint:'e.g. "Will Q4 revenue exceed $500M?"'},
+  event:{label:"Event Outcome",color:"#7c3aed",hint:'e.g. "Will P&G acquire company Z by December 2026?"'},
 };
 
 /* Phase 8: Participation range helper */
@@ -105,14 +106,14 @@ const participationRange=n=>{
 const currentQuarter=()=>{const d=new Date();const q=Math.ceil((d.getMonth()+1)/3);return`${d.getFullYear()}-Q${q}`};
 
 const SEEDS={
-  m1:{title:"Acme Corp acquisition of DataVault closes by Q3 2026",category:"M&A",type:"milestone",q:[25,-5],deadline:"2026-09-30",creator:"Strategy Team",department:"Strategy",resolutionSource:"Board Announcement",resolutionVerifier:"CFO",description:"Board approved LOI in Jan. Due diligence ongoing. Regulatory filing expected Q2.",resolved:null,pendingResolution:null,dispute:null,trades:47,volume:4200},
-  m2:{title:"Project Atlas achieves product-market fit (>40% D90 retention)",category:"Product",type:"scalar",q:[10,5],deadline:"2026-06-30",creator:"Product Lead",department:"Product",resolutionSource:"Analytics Dashboard",resolutionVerifier:"CTO",description:"Currently at 28% D90 retention. v2.3 launching March with onboarding overhaul.",resolved:null,pendingResolution:null,dispute:null,trades:31,volume:2800},
-  m3:{title:"APAC revenue exceeds $50M this fiscal year",category:"Sales",type:"scalar",q:[-8,12],deadline:"2026-12-31",creator:"APAC Head",department:"Sales",resolutionSource:"ERP System",resolutionVerifier:"CFO",description:"YTD run-rate: $38M. Pipeline strong in SG and Japan.",resolved:null,pendingResolution:null,dispute:null,trades:22,volume:1950},
-  m4:{title:"Board approves pivot to AI-first product strategy by June",category:"Strategy",type:"binary",q:[30,-15],deadline:"2026-06-30",creator:"CEO Office",department:"Strategy",resolutionSource:"Board Minutes",resolutionVerifier:"COO",description:"CEO signalled AI priority at all-hands. CPO leading feasibility study.",resolved:null,pendingResolution:null,dispute:null,trades:56,volume:5100},
-  m5:{title:"Engineering headcount exceeds 200 by year-end",category:"Operations",type:"scalar",q:[0,8],deadline:"2026-12-31",creator:"VP Engineering",department:"Engineering",resolutionSource:"HR System",resolutionVerifier:"CHRO",description:"Current: 156. Approved req for 60 new hires. Attrition at 12%.",resolved:null,pendingResolution:null,dispute:null,trades:18,volume:1400},
-  m6:{title:"Series C closes at $500M+ valuation",category:"M&A",type:"scalar",q:[15,0],deadline:"2026-08-31",creator:"CFO",department:"Finance",resolutionSource:"Term Sheet",resolutionVerifier:"CEO Office",description:"Term sheets from 3 VCs. Lead investor DD wrapping up.",resolved:null,pendingResolution:null,dispute:null,trades:39,volume:3600},
-  m7:{title:"Customer NPS improves to 60+ (currently 42)",category:"Product",type:"scalar",q:[-5,10],deadline:"2026-09-30",creator:"CX Team",department:"Customer Experience",resolutionSource:"NPS Survey Tool",resolutionVerifier:"CXO",description:"Key drivers: support response time and onboarding.",resolved:null,pendingResolution:null,dispute:null,trades:15,volume:1100},
-  m8:{title:"Q2 revenue hits $18M target",category:"Sales",type:"scalar",q:[5,3],deadline:"2026-06-30",creator:"CRO",department:"Sales",resolutionSource:"ERP System",resolutionVerifier:"CFO",description:"Q1 closed at $15.2M. Pipeline coverage: 3.2x for Q2.",resolved:"yes",pendingResolution:null,dispute:null,trades:41,volume:3800},
+  m1:{title:"Acme Corp acquisition of DataVault closes by Q3 2026",category:"M&A",type:"milestone",q:[25,-5],deadline:"2026-09-30",creator:"Strategy Team",department:"Strategy",resolutionSource:"Board Announcement",resolutionVerifier:"CFO",description:"",resolved:null,pendingResolution:null,dispute:null,trades:47,volume:4200},
+  m2:{title:"Project Atlas achieves product-market fit (>40% D90 retention)",category:"Product",type:"target",q:[10,5],deadline:"2026-06-30",creator:"Product Lead",department:"Product",resolutionSource:"Analytics Dashboard",resolutionVerifier:"CTO",description:"",resolved:null,pendingResolution:null,dispute:null,trades:31,volume:2800},
+  m3:{title:"APAC revenue exceeds $50M this fiscal year",category:"Sales",type:"target",q:[-8,12],deadline:"2026-12-31",creator:"APAC Head",department:"Sales",resolutionSource:"ERP System",resolutionVerifier:"CFO",description:"",resolved:null,pendingResolution:null,dispute:null,trades:22,volume:1950},
+  m4:{title:"Board approves pivot to AI-first product strategy by June",category:"Strategy",type:"event",q:[30,-15],deadline:"2026-06-30",creator:"CEO Office",department:"Strategy",resolutionSource:"Board Minutes",resolutionVerifier:"COO",description:"",resolved:null,pendingResolution:null,dispute:null,trades:56,volume:5100},
+  m5:{title:"Engineering headcount exceeds 200 by year-end",category:"Operations",type:"target",q:[0,8],deadline:"2026-12-31",creator:"VP Engineering",department:"Engineering",resolutionSource:"HR System",resolutionVerifier:"CHRO",description:"",resolved:null,pendingResolution:null,dispute:null,trades:18,volume:1400},
+  m6:{title:"P&G acquires DataVault at $500M+ valuation",category:"M&A",type:"event",q:[15,0],deadline:"2026-08-31",creator:"CFO",department:"Finance",resolutionSource:"Term Sheet",resolutionVerifier:"CEO Office",description:"",resolved:null,pendingResolution:null,dispute:null,trades:39,volume:3600},
+  m7:{title:"Customer NPS improves to 60+ (currently 42)",category:"Product",type:"target",q:[-5,10],deadline:"2026-09-30",creator:"CX Team",department:"Customer Experience",resolutionSource:"NPS Survey Tool",resolutionVerifier:"CXO",description:"",resolved:null,pendingResolution:null,dispute:null,trades:15,volume:1100},
+  m8:{title:"Q2 revenue hits $18M target",category:"Sales",type:"target",q:[5,3],deadline:"2026-06-30",creator:"CRO",department:"Sales",resolutionSource:"ERP System",resolutionVerifier:"CFO",description:"",resolved:"yes",pendingResolution:null,dispute:null,trades:41,volume:3800},
 };
 
 const MOCK_LEADERS=[
@@ -133,13 +134,14 @@ function App(){
   const [showCreate,setShowCreate]=useState(false);
   const [showTrade,setShowTrade]=useState(null);
   const [showResolve,setShowResolve]=useState(null);
-  const [showWallet,setShowWallet]=useState(false);
+  const [showWallet]=useState(false);
   const [showShare,setShowShare]=useState(false);
   const [toast,setToast]=useState(null);
   const [filterCat,setFilterCat]=useState("All");
   const [credits,setCredits]=useState(1000);
-  const [walletOn,setWalletOn]=useState(false);
+  const walletOn=false;
   const [liveN,setLiveN]=useState(0);
+  const [notifications,setNotifications]=useState([]);
   const [dbOk,setDbOk]=useState(false);
   const uid=useRef(null);
 
@@ -161,14 +163,14 @@ function App(){
         db.ref('user_trades/'+userId+'/credits').set(newCr);
         db.ref('user_trades/'+userId+'/lastTokenQuarter').set(q);
         setCredits(newCr);
-        setToast('New quarter! 1,000 PredictCoins added.');
+        setToast('New quarter! 1,000 credits added.');
       }
     });
   };
 
   /* Session restore */
   useEffect(()=>{
-    const saved=localStorage.getItem('predictcorp_session');
+    const saved=localStorage.getItem('pg_prediction_session');
     if(!saved)return;
     try{
       const{uid:savedUid,name}=JSON.parse(saved);
@@ -184,10 +186,36 @@ function App(){
           setReputation(d.reputation||null);
           setView("markets");
           checkQuarterlyTokens(savedUid,d.credits||1000);
-        }else{localStorage.removeItem('predictcorp_session')}
+        }else{localStorage.removeItem('pg_prediction_session')}
       });
-    }catch(e){localStorage.removeItem('predictcorp_session')}
+    }catch(e){localStorage.removeItem('pg_prediction_session')}
   },[]);
+
+  /* Deadline notification check */
+  const [deadlineNotifs,setDeadlineNotifs]=useState({});
+  useEffect(()=>{
+    if(!user||!Object.keys(markets).length)return;
+    const today=new Date().toISOString().split('T')[0];
+    Object.entries(markets).forEach(([id,m])=>{
+      if(m.resolved||m.pendingResolution)return;
+      if(m.deadline&&m.deadline<=today&&!deadlineNotifs[id]){
+        setDeadlineNotifs(prev=>({...prev,[id]:true}));
+        if(m.creator===user.name){
+          setToast(`Deadline reached for "${m.title}". Please resolve this market.`);
+          /* Write persistent notification */
+          db.ref('notifications/'+uid.current).push({
+            type:'deadline_reached',
+            marketId:id,
+            title:m.title,
+            message:`Deadline reached for "${m.title}". Please claim the resolution.`,
+            read:false,
+            shown:true,
+            createdAt:Date.now()
+          });
+        }
+      }
+    });
+  },[markets,user]);
 
   /* Presence */
   useEffect(()=>{
@@ -215,6 +243,33 @@ function App(){
     return()=>ref.off('value',l);
   },[user]);
 
+  /* Notifications listener */
+  useEffect(()=>{
+    if(!user)return;
+    const ref=db.ref('notifications/'+uid.current);
+    const l=ref.orderByChild('read').equalTo(false).on('value',s=>{
+      if(!s.exists()){setNotifications([]);return}
+      const notifs=Object.entries(s.val()).map(([k,v])=>({id:k,...v}));
+      setNotifications(notifs);
+      /* Show toast for new verification requests */
+      notifs.forEach(n=>{
+        if(n.type==='verify_resolution'&&!n.shown){
+          setToast(n.message);
+          db.ref('notifications/'+uid.current+'/'+n.id+'/shown').set(true);
+        }
+        if(n.type==='deadline_reached'&&!n.shown){
+          setToast(n.message);
+          db.ref('notifications/'+uid.current+'/'+n.id+'/shown').set(true);
+        }
+      });
+    });
+    return()=>ref.off('value',l);
+  },[user]);
+
+  const markNotifRead=(notifId)=>{
+    db.ref('notifications/'+uid.current+'/'+notifId+'/read').set(true);
+  };
+
   const login=(name,cb)=>{
     const trimmed=(name||"").trim();
     if(trimmed){
@@ -226,7 +281,7 @@ function App(){
           setUser(u);setCredits(data.credits||1000);
           setFirstEstimates(data.firstEstimates||{});
           setReputation(data.reputation||null);
-          localStorage.setItem('predictcorp_session',JSON.stringify({uid:existingUid,name:data.name}));
+          localStorage.setItem('pg_prediction_session',JSON.stringify({uid:existingUid,name:data.name}));
           setView("markets");setToast(`Welcome back ${u.name}! Session restored.`);
           checkQuarterlyTokens(existingUid,data.credits||1000);
         }else{
@@ -236,8 +291,8 @@ function App(){
           setUser(u);setCredits(1000);
           const q=currentQuarter();
           db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name,lastTokenQuarter:q});
-          localStorage.setItem('predictcorp_session',JSON.stringify({uid:id,name:u.name}));
-          setView("markets");setToast(`Welcome ${u.name}! 1,000 PredictCoins credited.`);
+          localStorage.setItem('pg_prediction_session',JSON.stringify({uid:id,name:u.name}));
+          setView("markets");setToast(`Welcome ${u.name}! 1,000 credits credited.`);
         }
         if(cb)cb();
       });
@@ -248,8 +303,8 @@ function App(){
       setUser(u);setCredits(1000);
       const q=currentQuarter();
       db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name,lastTokenQuarter:q});
-      localStorage.setItem('predictcorp_session',JSON.stringify({uid:id,name:u.name}));
-      setView("markets");setToast(`Welcome ${u.name}! 1,000 PredictCoins credited.`);
+      localStorage.setItem('pg_prediction_session',JSON.stringify({uid:id,name:u.name}));
+      setView("markets");setToast(`Welcome ${u.name}! 1,000 credits credited.`);
       if(cb)cb();
     }
   };
@@ -276,14 +331,34 @@ function App(){
   };
 
   const createMkt=(title,cat,dl,desc,type,dept,resSrc,resVer)=>{
-    db.ref('markets/m'+Date.now()).set({title,category:cat,type:type||"binary",q:[0,0],deadline:dl,creator:user.name,department:dept,resolutionSource:resSrc,resolutionVerifier:resVer,description:desc||"",resolved:null,pendingResolution:null,dispute:null,trades:0,volume:0});
+    db.ref('markets/m'+Date.now()).set({title,category:cat,type:type||"milestone",q:[0,0],deadline:dl,creator:user.name,department:dept,resolutionSource:resSrc,resolutionVerifier:resVer,description:desc||"",resolved:null,pendingResolution:null,dispute:null,trades:0,volume:0});
     setShowCreate(false);setToast(`Market created: "${title}"`);
   };
 
-  /* Phase 6: creator claims resolution */
+  /* Phase 6: creator claims resolution — also notifies verifier */
   const claimResolution=(mktId,outcome)=>{
+    const m=markets[mktId];
     db.ref('markets/'+mktId+'/pendingResolution').set({outcome,claimedBy:user.name,claimedAt:Date.now()});
-    setShowResolve(null);setToast('Resolution claimed. Awaiting verifier confirmation.');
+    /* Send notification to verifier account */
+    if(m&&m.resolutionVerifier){
+      db.ref('user_trades').orderByChild('name').equalTo(m.resolutionVerifier).once('value').then(s=>{
+        if(s.exists()){
+          Object.keys(s.val()).forEach(vUid=>{
+            db.ref('notifications/'+vUid).push({
+              type:'verify_resolution',
+              marketId:mktId,
+              title:m.title,
+              outcome,
+              claimedBy:user.name,
+              message:`Please verify resolution for "${m.title}" — claimed ${outcome.toUpperCase()} by ${user.name}`,
+              read:false,
+              createdAt:Date.now()
+            });
+          });
+        }
+      });
+    }
+    setShowResolve(null);setToast('Resolution claimed. Verifier has been notified.');
   };
 
   /* Phase 6: verifier confirms — triggers payouts + Phase 4 reputation */
@@ -321,11 +396,34 @@ function App(){
     setToast('Dispute filed. Governance panel notified.');
   };
 
-  /* Phase 3: submit first estimate */
+  /* Phase 3: submit first estimate — auto-stakes tokens based on estimate */
   const submitEstimate=(mktId,estimate)=>{
     db.ref('user_trades/'+uid.current+'/firstEstimates/'+mktId).set({estimate,submittedAt:Date.now()});
     setFirstEstimates(fe=>({...fe,[mktId]:{estimate,submittedAt:Date.now()}}));
     setShowEstimate(false);
+    /* Auto-stake: place a trade based on estimate direction */
+    const m=markets[mktId];if(!m||m.resolved!=null)return;
+    const autoShares=10;
+    const outcome=estimate>=50?0:1; /* YES if estimate>=50%, NO otherwise */
+    const q=m.q||[0,0];
+    const{newQ,cost}=LMSR.buy(q,outcome,autoShares);
+    if(cost<=credits){
+      db.ref('markets/'+mktId).transaction(c=>{
+        if(!c)return c;const cq=c.q||[0,0];cq[outcome]+=autoShares;c.q=cq;c.trades=(c.trades||0)+1;c.volume=(c.volume||0)+Math.round(cost);return c;
+      });
+      const hourKey=new Date().toISOString().slice(0,13).replace(/[^0-9]/g,'');
+      db.ref('snapshots/'+mktId+'/'+hourKey).transaction(v=>v!==null?v:LMSR.price(newQ,0));
+      const id=uid.current;const pk=`${mktId}_${outcome}`;
+      const ex=positions.find(p=>p.key===pk);
+      const np=ex?{...ex,shares:ex.shares+autoShares,avgCost:(ex.avgCost*ex.shares+cost)/(ex.shares+autoShares)}:{key:pk,marketId:mktId,outcome,shares:autoShares,avgCost:cost/autoShares,title:m.title};
+      const nc=Math.round((credits-cost)*100)/100;
+      db.ref('user_trades/'+id+'/credits').set(nc);
+      db.ref('user_trades/'+id+'/positions/'+pk).set(np);
+      db.ref('user_trades/'+id+'/history').push({marketId:mktId,title:m.title,outcome:outcome===0?"YES":"NO",shares:autoShares,cost:cost.toFixed(2),time:new Date().toLocaleTimeString(),prob:pct(LMSR.price(newQ,0))});
+      setToast(`Estimate submitted! Auto-staked ${autoShares} ${outcome===0?"YES":"NO"} shares (${cost.toFixed(1)} cr)`);
+    }else{
+      setToast('Estimate submitted! (Insufficient credits for auto-stake)');
+    }
   };
 
   const openDetail=(mktId)=>{
@@ -354,7 +452,7 @@ function App(){
     <div className="flex items-center justify-between px-3 py-2.5 bg-white border-b sticky top-0 z-50 gap-2 flex-wrap">
       <div className="flex items-center gap-2 cursor-pointer" onClick={()=>{setView("markets");setSelMkt(null)}}>
         <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center"><I.Target size={16} color="white"/></div>
-        <span className="font-bold text-gray-900">PredictCorp</span>
+        <span className="font-bold text-gray-900">P&amp;G</span>
         {liveN>0&&<span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full"><span className="w-1.5 h-1.5 bg-green-500 rounded-full live-dot"/>{participationRange(liveN)}</span>}
       </div>
       <div className="flex gap-1">
@@ -367,8 +465,12 @@ function App(){
         <button onClick={()=>setShowCreate(true)} className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700"><I.Plus size={13}/>New</button>
         <button onClick={()=>setShowShare(true)} className="p-1.5 border rounded-lg text-gray-500 hover:bg-gray-50"><I.Share2 size={13}/></button>
         <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg"><I.DollarSign size={12} className="text-amber-600"/><span className="text-xs font-bold text-amber-700">{credits.toFixed(0)}</span></div>
-        {walletOn?<div className="flex items-center gap-1 bg-green-50 border border-green-200 px-2 py-1 rounded-lg"><I.Wallet size={12} className="text-green-600"/><span className="text-xs text-green-700">0x7a..f9</span></div>
-        :<button onClick={()=>setShowWallet(true)} className="p-1.5 border rounded-lg text-gray-400 hover:bg-gray-50"><I.Wallet size={13}/></button>}
+        <div className="relative">
+          <button onClick={()=>setView("notifications")} className="p-1.5 border rounded-lg text-gray-500 hover:bg-gray-50 relative">
+            <I.Bell size={13}/>
+            {notifications.length>0&&<span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">{notifications.length}</span>}
+          </button>
+        </div>
         <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center text-xs font-bold text-indigo-700">{user?.avatar}</div>
       </div>
     </div>
@@ -377,29 +479,37 @@ function App(){
   // ── Landing ──
   const Landing=()=>{
     const [nm,setNm]=useState("");
+    const [loginId,setLoginId]=useState("");
     const [nameErr,setNameErr]=useState(false);
+    const handleLogin=()=>{
+      if(!nm.trim()||!loginId.trim()){setNameErr(true);return}
+      login(nm.trim()+" ("+loginId.trim()+")");
+    };
     return(
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-900 flex flex-col items-center justify-center text-white p-6">
         <div className="flex items-center gap-3 mb-5">
           <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg"><I.Target size={28} className="text-indigo-600"/></div>
-          <div><h1 className="text-3xl sm:text-4xl font-bold tracking-tight">PredictCorp</h1><p className="text-indigo-300 text-sm">Corporate Prediction Markets</p></div>
+          <div><h1 className="text-3xl sm:text-4xl font-bold tracking-tight">P&amp;G</h1><p className="text-indigo-300 text-sm">Corporate Prediction Markets</p></div>
         </div>
         <p className="text-lg text-indigo-200 mb-1 text-center">Surface hidden information that surveys miss.</p>
         <p className="text-indigo-400 mb-6 text-center max-w-lg text-sm">Employees bet on M&A outcomes, product-market fit, and quarterly targets. Markets aggregate dispersed knowledge into actionable probabilities.</p>
         <div className="bg-white bg-opacity-10 backdrop-blur rounded-2xl p-5 w-72 sm:w-80 mb-4">
-          <label className="text-sm text-indigo-200 mb-1.5 block">Your name</label>
-          <input value={nm} onChange={e=>{setNm(e.target.value);setNameErr(false)}} placeholder="e.g. Sarah, Team A..."
-            onKeyDown={e=>e.key==="Enter"&&login(nm)}
+          <label className="text-sm text-indigo-200 mb-1.5 block">Name</label>
+          <input value={nm} onChange={e=>{setNm(e.target.value);setNameErr(false)}} placeholder="e.g. Sarah Chen"
+            onKeyDown={e=>e.key==="Enter"&&handleLogin()}
+            className={`w-full bg-white bg-opacity-10 border ${nameErr?"border-red-400":"border-indigo-400"} rounded-lg px-4 py-2.5 text-white placeholder-indigo-300 outline-none focus:border-white mb-3 text-sm`}/>
+          <label className="text-sm text-indigo-200 mb-1.5 block">Company Login ID</label>
+          <input value={loginId} onChange={e=>{setLoginId(e.target.value);setNameErr(false)}} placeholder="e.g. schen01"
+            onKeyDown={e=>e.key==="Enter"&&handleLogin()}
             className={`w-full bg-white bg-opacity-10 border ${nameErr?"border-red-400":"border-indigo-400"} rounded-lg px-4 py-2.5 text-white placeholder-indigo-300 outline-none focus:border-white mb-1 text-sm`}/>
-          {nameErr?<p className="text-xs text-red-400 mb-2">Enter your name to connect a wallet.</p>:<div className="mb-2"/>}
-          <button onClick={()=>login(nm)} className="w-full flex items-center justify-center gap-2 bg-white text-indigo-900 font-semibold py-3 rounded-xl hover:bg-indigo-50 text-sm">
+          {nameErr?<p className="text-xs text-red-400 mb-2">Both name and company login ID are required.</p>:<div className="mb-2"/>}
+          <button onClick={handleLogin} className="w-full flex items-center justify-center gap-2 bg-white text-indigo-900 font-semibold py-3 rounded-xl hover:bg-indigo-50 text-sm">
             <I.LogIn size={16}/>Join &amp; Get 1,000 Credits
           </button>
         </div>
-        <button onClick={()=>{if(!nm.trim()){setNameErr(true);return}login(nm,()=>setShowWallet(true))}} className="text-indigo-300 hover:text-white text-sm flex items-center gap-1"><I.Wallet size={14}/>or connect crypto wallet</button>
         <div className="grid grid-cols-3 gap-4 max-w-2xl mt-8">
           {[["Incentive-Aligned","Credits on the line. No groupthink. 73% more accurate than surveys.","Zap"],
-            ["Token Rewards","Earn PredictCoins for accuracy. Quarterly allocation. Super Predictor recognition.","DollarSign"],
+            ["Accuracy Rewards","Earn credits for accuracy. Quarterly allocation. Super Predictor recognition.","DollarSign"],
             ["Real-Time Signal","Live dashboards. Track conviction shifts before they appear in reports.","TrendingUp"]
           ].map(([t,d,icon])=>{
             const Ic=I[icon];
@@ -417,7 +527,7 @@ function App(){
   // ── Type badge (Phase 1) ──
   const TypeBadge=({type})=>{
     if(!type)return null;
-    const t=TEMPLATES[type]||TEMPLATES.binary;
+    const t=TEMPLATES[type]||TEMPLATES.milestone;
     return <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{backgroundColor:t.color+"18",color:t.color}}>{t.label}</span>;
   };
 
@@ -426,6 +536,7 @@ function App(){
     const q=m.q||[0,0];const p=LMSR.price(q,0);const res=m.resolved!=null;
     const pending=m.pendingResolution&&!m.resolved&&!m.dispute;
     const disputed=m.dispute&&!m.resolved;
+    const hasVoted=!!firstEstimates[m.id]||res;
     return(
       <div onClick={()=>openDetail(m.id)} className={`bg-white rounded-xl border hover:shadow-md hover:border-indigo-200 cursor-pointer ${res?"opacity-70":""}`}>
         <div className="p-4">
@@ -440,10 +551,13 @@ function App(){
             </div>
           </div>
           <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-3 min-h-[2.5rem]">{m.title}</h3>
-          <div className="mb-2">
+          {hasVoted?<div className="mb-2">
             <div className="flex justify-between text-xs mb-1"><span className="font-semibold text-green-600">YES {pct(p)}</span><span className="font-semibold text-red-500">NO {pct(1-p)}</span></div>
             <div className="w-full bg-red-100 rounded-full h-2.5"><div className="bg-green-500 h-2.5 rounded-full transition-all" style={{width:`${p*100}%`}}/></div>
-          </div>
+          </div>:<div className="mb-2">
+            <div className="flex justify-between text-xs mb-1"><span className="text-gray-400">Vote to see probabilities</span></div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5"><div className="bg-gray-300 h-2.5 rounded-full" style={{width:"50%"}}/></div>
+          </div>}
           <div className="flex justify-between text-xs text-gray-400"><span>{participationRange(m.trades||0)}</span><span>{fmt(m.volume||0)} vol</span></div>
         </div>
       </div>
@@ -478,6 +592,8 @@ function App(){
     const disputed=m.dispute;
     const hasTraded=positions.some(x=>x.marketId===selMkt)||tradeHistory.some(x=>x.marketId===selMkt);
     const disputeWindow=pending&&!disputed&&(Date.now()-pending.claimedAt)<48*3600*1000;
+    const hasVoted=!!firstEstimates[selMkt]||res||isRestricted;
+    const deadlinePassed=m.deadline&&m.deadline<=new Date().toISOString().split('T')[0]&&!res&&!pending;
     const [disputeReason,setDisputeReason]=useState("");
     const [showDisputeInput,setShowDisputeInput]=useState(false);
     return(
@@ -492,17 +608,19 @@ function App(){
                 {pending&&!res&&!disputed&&<span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting Verification</span>}
                 {disputed&&!res&&<span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Under Review — Governance Panel</span>}
               </div>
-              <h2 className="text-lg font-bold text-gray-900 mb-2">{m.title}</h2>
-              <p className="text-gray-500 text-sm mb-4">{m.description}</p>
+              <h2 className="text-lg font-bold text-gray-900 mb-4">{m.title}</h2>
               {pending&&!res&&<div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-sm">
                 <p className="font-medium text-amber-800">Resolution claimed: <span className="font-bold">{pending.outcome?.toUpperCase()}</span> by {pending.claimedBy}</p>
                 {disputeWindow&&hasTraded&&!showDisputeInput&&<button onClick={()=>setShowDisputeInput(true)} className="mt-2 text-xs text-red-600 flex items-center gap-1 hover:underline"><I.Flag size={12}/>Dispute this resolution (48h window)</button>}
                 {showDisputeInput&&<div className="mt-2 space-y-1"><input value={disputeReason} onChange={e=>setDisputeReason(e.target.value)} placeholder="Reason for dispute..." className="w-full border rounded px-2 py-1 text-xs outline-none"/><div className="flex gap-2"><button onClick={()=>{if(disputeReason.trim())disputeResolution(selMkt,disputeReason);setShowDisputeInput(false)}} className="bg-red-600 text-white text-xs px-2 py-1 rounded">Submit</button><button onClick={()=>setShowDisputeInput(false)} className="text-xs text-gray-500">Cancel</button></div></div>}
               </div>}
               {disputed&&!res&&<div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 text-sm"><p className="font-medium text-red-800">Dispute filed by {disputed.filedBy}: "{disputed.reason}"</p></div>}
+              {deadlinePassed&&<div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3 text-sm flex items-center gap-2"><I.AlertCircle size={14} className="text-orange-500"/><p className="font-medium text-orange-800">Deadline has passed ({m.deadline}). This market should be resolved.</p></div>}
               <div className="mb-4">
-                <div className="flex justify-between mb-1"><span className="text-lg font-bold text-green-600">YES {pct(p)}</span><span className="text-lg font-bold text-red-500">NO {pct(1-p)}</span></div>
-                <div className="w-full bg-red-100 rounded-full h-5"><div className="bg-green-500 h-5 rounded-full transition-all" style={{width:`${p*100}%`}}/></div>
+                {hasVoted?<><div className="flex justify-between mb-1"><span className="text-lg font-bold text-green-600">YES {pct(p)}</span><span className="text-lg font-bold text-red-500">NO {pct(1-p)}</span></div>
+                <div className="w-full bg-red-100 rounded-full h-5"><div className="bg-green-500 h-5 rounded-full transition-all" style={{width:`${p*100}%`}}/></div></>
+                :<><div className="flex justify-between mb-1"><span className="text-lg font-bold text-gray-400">Submit your estimate to see probabilities</span></div>
+                <div className="w-full bg-gray-200 rounded-full h-5"><div className="bg-gray-300 h-5 rounded-full" style={{width:"50%"}}/></div></>}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">{[["Trades",participationRange(m.trades||0)],["Volume",fmt(m.volume||0)],["Deadline",m.deadline],["Creator",m.creator]].map(([l,v])=><div key={l} className="bg-gray-50 rounded-lg p-2.5 text-center"><p className="text-xs text-gray-400">{l}</p><p className="font-semibold text-xs truncate">{v}</p></div>)}</div>
               {(m.department||m.resolutionSource||m.resolutionVerifier)&&<div className="mt-3 grid grid-cols-3 gap-2">{[["Department",m.department],["Resolution Source",m.resolutionSource],["Verifier",m.resolutionVerifier]].map(([l,v])=>v?<div key={l} className="bg-indigo-50 rounded-lg p-2 text-center"><p className="text-xs text-indigo-400">{l}</p><p className="font-medium text-xs text-indigo-700 truncate">{v}</p></div>:null)}</div>}
@@ -526,7 +644,7 @@ function App(){
               <div className="flex items-center gap-2 mb-1"><I.Lock size={13} className="text-gray-500"/><span className="text-xs font-semibold text-gray-700">Restricted Participant</span></div>
               <p className="text-xs text-gray-500">{isCr?"You created this market.":"You are the resolution verifier."} Trading is not permitted to prevent conflicts of interest.</p>
             </div>}
-            {!isRestricted&&!res&&!pending&&!disputed&&<div className="bg-white rounded-xl border p-4 lg:sticky lg:top-16">
+            {!isRestricted&&!res&&!pending&&!disputed&&hasVoted&&<div className="bg-white rounded-xl border p-4 lg:sticky lg:top-16">
               <h3 className="font-semibold mb-3 text-sm">Trade</h3>
               <div className="grid grid-cols-2 gap-2.5 mb-2">
                 <button onClick={()=>setShowTrade({marketId:selMkt,outcome:0})} className="bg-green-50 border-2 border-green-200 rounded-xl p-3 text-center hover:border-green-400">
@@ -773,7 +891,7 @@ function App(){
     const [c,setC]=useState("Custom");
     const [dl,setDl]=useState(new Date().toISOString().split('T')[0]);
     const [d,setD]=useState("");
-    const [type,setType]=useState("binary");
+    const [type,setType]=useState("milestone");
     const [dept,setDept]=useState("");
     const [resSrc,setResSrc]=useState("");
     const [resVer,setResVer]=useState("");
@@ -806,8 +924,6 @@ function App(){
               <div><label className="text-xs font-medium text-gray-700 mb-1 block">Deadline</label>
                 <input type="date" value={dl} onChange={e=>setDl(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm outline-none"/></div>
             </div>
-            <div><label className="text-xs font-medium text-gray-700 mb-1 block">Context</label>
-              <textarea value={d} onChange={e=>setD(e.target.value)} rows={2} placeholder="Help traders decide..." className="w-full border rounded-lg px-3 py-2 text-sm outline-none resize-none"/></div>
             <div className="border-t pt-3 space-y-2">
               <p className="text-xs font-semibold text-gray-600 flex items-center gap-1"><I.Shield size={12} className="text-indigo-500"/>Governance — required</p>
               <div><label className="text-xs font-medium text-gray-700 mb-1 block">Responsible Department <span className="text-red-500">*</span></label>
@@ -816,10 +932,10 @@ function App(){
               <div><label className="text-xs font-medium text-gray-700 mb-1 block">Resolution Source <span className="text-red-500">*</span></label>
                 <input value={resSrc} onChange={e=>setResSrc(e.target.value)} placeholder="e.g. ERP System, Board Minutes..."
                   className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/></div>
-              <div><label className="text-xs font-medium text-gray-700 mb-1 block">Resolution Verifier (username) <span className="text-red-500">*</span></label>
-                <input value={resVer} onChange={e=>setResVer(e.target.value)} placeholder="Name of the verifier..."
+              <div><label className="text-xs font-medium text-gray-700 mb-1 block">Resolution Verifier (account name) <span className="text-red-500">*</span></label>
+                <input value={resVer} onChange={e=>setResVer(e.target.value)} placeholder="Exact name of verifier's account..."
                   className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/>
-                <p className="text-xs text-gray-400 mt-0.5">This person confirms the outcome before payouts. They cannot trade in this market.</p></div>
+                <p className="text-xs text-gray-400 mt-0.5">Must match an existing account. This person will be notified and must verify the outcome before payouts. They cannot trade in this market.</p></div>
             </div>
           </div>
           <button onClick={()=>canCreate&&createMkt(t,c,dl,d,type,dept,resSrc,resVer)} disabled={!canCreate}
@@ -865,6 +981,7 @@ function App(){
             <input type="range" min={0} max={100} value={est} onChange={e=>setEst(+e.target.value)} className="w-full accent-indigo-600"/>
             <div className="mt-2 w-full bg-red-100 rounded-full h-3"><div className="bg-indigo-500 h-3 rounded-full transition-all" style={{width:`${est}%`}}/></div>
           </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 mb-3 text-xs text-amber-700">Your estimate will automatically stake 10 shares on your chosen direction ({est>=50?"YES":"NO"}).</div>
           <button onClick={()=>submitEstimate(selMkt,est)} className="w-full bg-indigo-600 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-700">Submit &amp; View Market</button>
           <p className="text-xs text-gray-400 mt-2 text-center">Used to track your forecasting accuracy over time.</p>
         </div>
@@ -872,29 +989,42 @@ function App(){
     );
   };
 
-  const WalletM=()=>{
-    const [walletName,setWalletName]=useState("");
-    if(!showWallet)return null;
-    const needsName=!user;
-    const nameValid=walletName.trim().length>0;
+  // ── Notifications View ──
+  const Notifications=()=>{
+    const [allNotifs,setAllNotifs]=useState([]);
+    useEffect(()=>{
+      const ref=db.ref('notifications/'+uid.current);
+      const l=ref.orderByChild('createdAt').on('value',s=>{
+        if(!s.exists()){setAllNotifs([]);return}
+        setAllNotifs(Object.entries(s.val()).map(([k,v])=>({id:k,...v})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)));
+      });
+      return()=>ref.off('value',l);
+    },[]);
     return(
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={()=>setShowWallet(false)}>
-        <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl" onClick={e=>e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-3"><h3 className="font-bold">Connect Wallet</h3><button onClick={()=>setShowWallet(false)}><I.X size={18} className="text-gray-400"/></button></div>
-          {needsName&&<div className="mb-3">
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Your name</label>
-            <input value={walletName} onChange={e=>setWalletName(e.target.value)} placeholder="Enter your name first..."
-              className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/>
-            {!nameValid&&<p className="text-xs text-gray-400 mt-1">Name required to connect wallet.</p>}
-          </div>}
-          {[["MetaMask","\u{1F98A}"],["WalletConnect","\u{1F517}"],["Coinbase","\u{1F535}"]].map(([n,ic])=>
-            <button key={n} onClick={()=>{if(needsName&&!nameValid)return;const connect=()=>{setWalletOn(true);setShowWallet(false);setToast(`${n} connected (mock)`)};if(needsName){login(walletName,connect)}else{connect()}}}
-              className={`w-full flex items-center gap-3 p-2.5 border rounded-lg mb-2 ${needsName&&!nameValid?"opacity-50 cursor-not-allowed":"hover:bg-gray-50"}`}><span className="text-lg">{ic}</span><span className="text-sm font-medium">{n}</span><I.ChevronRight size={13} className="ml-auto text-gray-300"/></button>)}
-          <div className="mt-2 bg-indigo-50 rounded-lg p-2.5"><p className="text-xs text-indigo-600">PredictCoins → ERC-20 for DeFi composability.</p></div>
-        </div>
+      <div className="max-w-3xl mx-auto space-y-4">
+        <h2 className="text-xl font-bold">Notifications</h2>
+        {allNotifs.length===0?<div className="bg-white rounded-xl border p-8 text-center"><p className="text-gray-500 text-sm">No notifications yet.</p></div>
+        :<div className="space-y-2">{allNotifs.map(n=>(
+          <div key={n.id} className={`bg-white rounded-xl border p-4 ${n.read?"opacity-60":""}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                {n.type==='verify_resolution'&&<div className="flex items-center gap-1.5 mb-1"><I.Shield size={14} className="text-indigo-600"/><span className="text-xs font-semibold text-indigo-700">Verification Required</span></div>}
+                {n.type==='deadline_reached'&&<div className="flex items-center gap-1.5 mb-1"><I.Clock size={14} className="text-orange-500"/><span className="text-xs font-semibold text-orange-700">Deadline Reached</span></div>}
+                <p className="text-sm text-gray-800">{n.message}</p>
+                <p className="text-xs text-gray-400 mt-1">{n.createdAt?new Date(n.createdAt).toLocaleString():""}</p>
+              </div>
+              <div className="flex gap-1.5">
+                {n.type==='verify_resolution'&&n.marketId&&!n.read&&<button onClick={()=>{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}} className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg">Review</button>}
+                {!n.read&&<button onClick={()=>markNotifRead(n.id)} className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1">Dismiss</button>}
+              </div>
+            </div>
+          </div>
+        ))}</div>}
       </div>
     );
   };
+
+  const WalletM=()=>null;
 
   const ShareM=()=>{
     const [cp2,setCp2]=useState(false);if(!showShare)return null;
@@ -934,6 +1064,7 @@ function App(){
         {view==="portfolio"&&<Portfolio/>}
         {view==="leaderboard"&&<Leaderboard/>}
         {view==="analytics"&&<Analytics/>}
+        {view==="notifications"&&<Notifications/>}
       </div></>}
     </div>
   );
