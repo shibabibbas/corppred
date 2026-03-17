@@ -148,10 +148,12 @@ function App(){
   useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(null),3000);return()=>clearTimeout(t)}},[toast]);
 
   useEffect(()=>{
+    const connRef=db.ref('.info/connected');
+    const connL=connRef.on('value',s=>{setDbOk(s.val()===true)});
     const ref=db.ref('markets');
-    ref.once('value').then(s=>{if(!s.exists())ref.set(SEEDS);setDbOk(true)}).catch(()=>setDbOk(false));
+    ref.once('value').then(s=>{if(!s.exists())ref.set(SEEDS)}).catch(()=>{});
     const l=ref.on('value',s=>{if(s.exists())setMarkets(s.val())});
-    return()=>ref.off('value',l);
+    return()=>{ref.off('value',l);connRef.off('value',connL)};
   },[]);
 
   /* Phase 5: quarterly token check */
