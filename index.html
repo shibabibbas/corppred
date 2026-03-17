@@ -316,6 +316,7 @@ function App(){
 
   const trade=(mktId,outcome,shares)=>{
     const m=markets[mktId];if(!m||m.resolved!=null)return;
+    if(user&&(user.name===m.creator||user.name===m.resolutionVerifier)){setToast("Restricted: you cannot trade in this market.");return}
     const q=m.q||[0,0];
     const{newQ,cost}=LMSR.buy(q,outcome,shares);
     if(cost>credits){setToast("Insufficient credits!");return}
@@ -423,6 +424,8 @@ function App(){
 
   /* Phase 3: submit first estimate — auto-stakes tokens based on estimate */
   const submitEstimate=(mktId,estimate)=>{
+    const em=markets[mktId];
+    if(user&&em&&(user.name===em.creator||user.name===em.resolutionVerifier)){setToast("Restricted: you cannot participate in this market.");setShowEstimate(false);return}
     db.ref('user_trades/'+uid.current+'/firstEstimates/'+mktId).set({estimate,submittedAt:Date.now()});
     setFirstEstimates(fe=>({...fe,[mktId]:{estimate,submittedAt:Date.now()}}));
     setShowEstimate(false);
@@ -561,7 +564,8 @@ function App(){
     const q=m.q||[0,0];const p=LMSR.price(q,0);const res=m.resolved!=null;
     const pending=m.pendingResolution&&!m.resolved&&!m.dispute;
     const disputed=m.dispute&&!m.resolved;
-    const hasVoted=!!firstEstimates[m.id]||res;
+    const isRestrictedCard=user&&(user.name===(m?.creator)||user.name===(m?.resolutionVerifier));
+    const hasVoted=!!firstEstimates[m.id]||res||isRestrictedCard;
     return(
       <div onClick={()=>openDetail(m.id)} className={`bg-white rounded-xl border hover:shadow-md hover:border-indigo-200 cursor-pointer ${res?"opacity-70":""}`}>
         <div className="p-4">
@@ -687,7 +691,7 @@ function App(){
             {isVerifier&&pending&&!res&&!disputed&&<div className="bg-indigo-50 rounded-xl border border-indigo-200 p-4">
               <div className="flex items-center gap-2 mb-2"><I.Shield size={13} className="text-indigo-600"/><span className="text-xs font-semibold text-indigo-800">Verifier Controls</span></div>
               <p className="text-xs text-indigo-600 mb-2">Creator claimed: <span className="font-bold">{pending.outcome?.toUpperCase()}</span></p>
-              <button onClick={()=>confirmResolution(selMkt,pending.outcome)} className="w-full bg-indigo-600 text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-1"><I.CheckCircle size={13}/>Confirm &amp; Resolve</button>
+              <button onClick={()=>confirmResolution(selMkt,pending.outcome)} className="w-full bg-indigo-600 text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-1"><I.CheckCircle size={13}/>Confirm Verification</button>
             </div>}
           </div>
         </div>
@@ -1041,7 +1045,10 @@ function App(){
               </div>
               <div className="flex gap-1.5">
                 {n.type==='verifier_assigned'&&n.marketId&&!n.read&&<button onClick={()=>{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}} className="text-xs bg-green-600 text-white px-2.5 py-1 rounded-lg">View Market</button>}
-                {n.type==='verify_resolution'&&n.marketId&&!n.read&&<button onClick={()=>{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}} className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg">Review</button>}
+                {n.type==='verify_resolution'&&n.marketId&&!n.read&&<>
+                  <button onClick={()=>{const mkt=markets[n.marketId];if(mkt&&mkt.pendingResolution&&!mkt.resolved&&!mkt.dispute){confirmResolution(n.marketId,mkt.pendingResolution.outcome);markNotifRead(n.id)}else{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}}} className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg flex items-center gap-1"><I.CheckCircle size={11}/>Confirm Verification</button>
+                  <button onClick={()=>{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}} className="text-xs bg-gray-200 text-gray-700 px-2.5 py-1 rounded-lg">Review</button>
+                </>}
                 {!n.read&&<button onClick={()=>markNotifRead(n.id)} className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1">Dismiss</button>}
               </div>
             </div>
