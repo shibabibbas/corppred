@@ -174,14 +174,15 @@ function App(){
     const saved=localStorage.getItem('pg_prediction_session');
     if(!saved)return;
     try{
-      const{uid:savedUid,name}=JSON.parse(saved);
+      const{uid:savedUid,name,loginId:savedLoginId}=JSON.parse(saved);
       if(!savedUid)return;
       db.ref('user_trades/'+savedUid).once('value').then(s=>{
         if(s.exists()){
           uid.current=savedUid;
           const d=s.val();
           const n=d.name||name;
-          setUser({name:n,avatar:(n||"A")[0].toUpperCase()});
+          const lid=d.loginId||savedLoginId||"";
+          setUser({name:n,avatar:(n||"A")[0].toUpperCase(),loginId:lid});
           setCredits(d.credits||1000);
           setFirstEstimates(d.firstEstimates||{});
           setReputation(d.reputation||null);
@@ -275,28 +276,32 @@ function App(){
     db.ref('notifications/'+uid.current+'/'+notifId+'/read').set(true);
   };
 
-  const login=(name,cb)=>{
+  const login=(name,cb,loginIdParam)=>{
     const trimmed=(name||"").trim();
+    const lid=(loginIdParam||"").trim();
     if(trimmed){
       db.ref('user_trades').orderByChild('name').equalTo(trimmed).once('value').then(s=>{
         if(s.exists()){
           const[existingUid,data]=Object.entries(s.val())[0];
           uid.current=existingUid;
-          const u={name:data.name,avatar:data.name[0].toUpperCase()};
+          const resolvedLid=data.loginId||lid||"";
+          const u={name:data.name,avatar:data.name[0].toUpperCase(),loginId:resolvedLid};
           setUser(u);setCredits(data.credits||1000);
           setFirstEstimates(data.firstEstimates||{});
           setReputation(data.reputation||null);
-          localStorage.setItem('pg_prediction_session',JSON.stringify({uid:existingUid,name:data.name}));
+          /* Backfill loginId if missing */
+          if(!data.loginId&&resolvedLid)db.ref('user_trades/'+existingUid+'/loginId').set(resolvedLid);
+          localStorage.setItem('pg_prediction_session',JSON.stringify({uid:existingUid,name:data.name,loginId:resolvedLid}));
           setView("markets");setToast(`Welcome back ${u.name}! Session restored.`);
           checkQuarterlyTokens(existingUid,data.credits||1000);
         }else{
           const id='u_'+Math.random().toString(36).substr(2,9);
           uid.current=id;
-          const u={name:trimmed,avatar:trimmed[0].toUpperCase()};
+          const u={name:trimmed,avatar:trimmed[0].toUpperCase(),loginId:lid};
           setUser(u);setCredits(1000);
           const q=currentQuarter();
-          db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name,lastTokenQuarter:q});
-          localStorage.setItem('pg_prediction_session',JSON.stringify({uid:id,name:u.name}));
+          db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name,loginId:lid,lastTokenQuarter:q});
+          localStorage.setItem('pg_prediction_session',JSON.stringify({uid:id,name:u.name,loginId:lid}));
           setView("markets");setToast(`Welcome ${u.name}! 1,000 credits credited.`);
         }
         if(cb)cb();
@@ -304,11 +309,11 @@ function App(){
     }else{
       const id='u_'+Math.random().toString(36).substr(2,9);
       uid.current=id;
-      const u={name:"Anon_"+id.slice(2,6),avatar:"A"};
+      const u={name:"Anon_"+id.slice(2,6),avatar:"A",loginId:""};
       setUser(u);setCredits(1000);
       const q=currentQuarter();
-      db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name,lastTokenQuarter:q});
-      localStorage.setItem('pg_prediction_session',JSON.stringify({uid:id,name:u.name}));
+      db.ref('user_trades/'+id).set({credits:1000,positions:{},history:{},name:u.name,loginId:"",lastTokenQuarter:q});
+      localStorage.setItem('pg_prediction_session',JSON.stringify({uid:id,name:u.name,loginId:""}));
       setView("markets");setToast(`Welcome ${u.name}! 1,000 credits credited.`);
       if(cb)cb();
     }
@@ -316,7 +321,7 @@ function App(){
 
   const trade=(mktId,outcome,shares)=>{
     const m=markets[mktId];if(!m||m.resolved!=null)return;
-    if(user&&(user.name===m.creator||user.name===m.resolutionVerifier)){setToast("Restricted: you cannot trade in this market.");return}
+    if(user&&(user.name===m.creator||user.loginId===m.resolutionVerifier)){setToast("Restricted: you cannot trade in this market.");return}
     const q=m.q||[0,0];
     const{newQ,cost}=LMSR.buy(q,outcome,shares);
     if(cost>credits){setToast("Insufficient credits!");return}
@@ -341,7 +346,7 @@ function App(){
     db.ref('markets/'+mktId).set({title,category:cat,type:type||"milestone",q:[0,0],deadline:dl,creator:user.name,department:dept,resolutionSource:resSrc,resolutionVerifier:resVer,description:desc||"",resolved:null,pendingResolution:null,dispute:null,trades:0,volume:0});
     /* Notify verifier at assignment time */
     if(resVer){
-      db.ref('user_trades').orderByChild('name').equalTo(resVer).once('value').then(s=>{
+      db.ref('user_trades').orderByChild('loginId').equalTo(resVer).once('value').then(s=>{
         if(s.exists()){
           Object.keys(s.val()).forEach(vUid=>{
             db.ref('notifications/'+vUid).push({
@@ -367,7 +372,7 @@ function App(){
     db.ref('markets/'+mktId+'/pendingResolution').set({outcome,claimedBy:user.name,claimedAt:Date.now()});
     /* Send notification to verifier account */
     if(m&&m.resolutionVerifier){
-      db.ref('user_trades').orderByChild('name').equalTo(m.resolutionVerifier).once('value').then(s=>{
+      db.ref('user_trades').orderByChild('loginId').equalTo(m.resolutionVerifier).once('value').then(s=>{
         if(s.exists()){
           Object.keys(s.val()).forEach(vUid=>{
             db.ref('notifications/'+vUid).push({
@@ -425,7 +430,7 @@ function App(){
   /* Phase 3: submit first estimate — auto-stakes tokens based on estimate */
   const submitEstimate=(mktId,estimate)=>{
     const em=markets[mktId];
-    if(user&&em&&(user.name===em.creator||user.name===em.resolutionVerifier)){setToast("Restricted: you cannot participate in this market.");setShowEstimate(false);return}
+    if(user&&em&&(user.name===em.creator||user.loginId===em.resolutionVerifier)){setToast("Restricted: you cannot participate in this market.");setShowEstimate(false);return}
     db.ref('user_trades/'+uid.current+'/firstEstimates/'+mktId).set({estimate,submittedAt:Date.now()});
     setFirstEstimates(fe=>({...fe,[mktId]:{estimate,submittedAt:Date.now()}}));
     setShowEstimate(false);
@@ -457,7 +462,7 @@ function App(){
   const openDetail=(mktId)=>{
     setSelMkt(mktId);
     const m=markets[mktId];
-    const isRestricted=user&&(user.name===(m?.creator)||user.name===(m?.resolutionVerifier));
+    const isRestricted=user&&(user.name===(m?.creator)||user.loginId===(m?.resolutionVerifier));
     if(!firstEstimates[mktId]&&!isRestricted&&m&&!m.resolved){
       setShowEstimate(true);
     }
@@ -511,7 +516,7 @@ function App(){
     const [nameErr,setNameErr]=useState(false);
     const handleLogin=()=>{
       if(!nm.trim()||!loginId.trim()){setNameErr(true);return}
-      login(nm.trim()+" ("+loginId.trim()+")");
+      login(nm.trim()+" ("+loginId.trim()+")",null,loginId.trim());
     };
     return(
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-900 flex flex-col items-center justify-center text-white p-6">
@@ -564,7 +569,7 @@ function App(){
     const q=m.q||[0,0];const p=LMSR.price(q,0);const res=m.resolved!=null;
     const pending=m.pendingResolution&&!m.resolved&&!m.dispute;
     const disputed=m.dispute&&!m.resolved;
-    const isRestrictedCard=user&&(user.name===(m?.creator)||user.name===(m?.resolutionVerifier));
+    const isRestrictedCard=user&&(user.name===(m?.creator)||user.loginId===(m?.resolutionVerifier));
     const hasVoted=!!firstEstimates[m.id]||res||isRestrictedCard;
     return(
       <div onClick={()=>openDetail(m.id)} className={`bg-white rounded-xl border hover:shadow-md hover:border-indigo-200 cursor-pointer ${res?"opacity-70":""}`}>
@@ -615,7 +620,7 @@ function App(){
     const q=m.q||[0,0];const p=LMSR.price(q,0);const res=!!m.resolved;
     const myP=positions.filter(x=>x.marketId===selMkt);const myT=tradeHistory.filter(x=>x.marketId===selMkt);
     const isCr=m.creator===user?.name;
-    const isVerifier=m.resolutionVerifier===user?.name;
+    const isVerifier=m.resolutionVerifier===user?.loginId;
     const isRestricted=isCr||isVerifier;
     const pending=m.pendingResolution;
     const disputed=m.dispute;
@@ -961,10 +966,10 @@ function App(){
               <div><label className="text-xs font-medium text-gray-700 mb-1 block">Resolution Source <span className="text-red-500">*</span></label>
                 <input value={resSrc} onChange={e=>setResSrc(e.target.value)} placeholder="e.g. ERP System, Board Minutes..."
                   className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/></div>
-              <div><label className="text-xs font-medium text-gray-700 mb-1 block">Resolution Verifier (account name) <span className="text-red-500">*</span></label>
-                <input value={resVer} onChange={e=>setResVer(e.target.value)} placeholder="Exact name of verifier's account..."
+              <div><label className="text-xs font-medium text-gray-700 mb-1 block">Resolution Verifier (company login ID) <span className="text-red-500">*</span></label>
+                <input value={resVer} onChange={e=>setResVer(e.target.value)} placeholder="e.g. schen01"
                   className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"/>
-                <p className="text-xs text-gray-400 mt-0.5">Must match an existing account. This person will be notified and must verify the outcome before payouts. They cannot trade in this market.</p></div>
+                <p className="text-xs text-gray-400 mt-0.5">Enter the verifier's company login ID (not their display name). They will be notified and must verify the outcome before payouts. They cannot trade in this market.</p></div>
             </div>
           </div>
           <button onClick={()=>canCreate&&createMkt(t,c,dl,d,type,dept,resSrc,resVer)} disabled={!canCreate}
