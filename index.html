@@ -73,6 +73,7 @@ const I = {
   Bell:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
   UserCheck:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>,
   Search:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  XCircle:(p)=><svg width={p.size||16} height={p.size||16} viewBox="0 0 24 24" fill="none" stroke={p.color||"currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className||""}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
 };
 
 const LMSR = {
@@ -268,6 +269,10 @@ function App(){
           setToast(n.message);
           db.ref('notifications/'+uid.current+'/'+n.id+'/shown').set(true);
         }
+        if(n.type==='verification_denied'&&!n.shown){
+          setToast(n.message);
+          db.ref('notifications/'+uid.current+'/'+n.id+'/shown').set(true);
+        }
       });
     });
     return()=>ref.off('value',l);
@@ -399,22 +404,22 @@ function App(){
     db.ref('markets/'+mktId+'/pendingResolution').set(null);
     db.ref('user_trades').once('value').then(s=>{
       if(!s.exists())return;
-      const outcomeNum=outcome==="yes"?0:1;
+      const resolvedProb=outcome==="yes"?1:0;
       Object.entries(s.val()).forEach(([uid2,ud])=>{
         if(!ud.positions)return;
         Object.values(ud.positions).forEach(pos=>{
           if(pos.marketId===mktId&&((outcome==="yes"&&pos.outcome===0)||(outcome==="no"&&pos.outcome===1)))
             db.ref('user_trades/'+uid2+'/credits').transaction(c=>(c||0)+pos.shares);
         });
-        /* Phase 4: Brier score */
+        /* Phase 4: Accuracy — how close estimate was to final resolved probability */
         const fe=ud.firstEstimates&&ud.firstEstimates[mktId];
         const hasPos=ud.positions&&Object.values(ud.positions).some(p=>p.marketId===mktId);
         if(fe!=null&&hasPos){
           const estimate=(fe.estimate||0)/100;
-          const brier=(estimate-outcomeNum)*(estimate-outcomeNum);
+          const accuracy=1-Math.abs(estimate-resolvedProb);
           db.ref('user_trades/'+uid2+'/reputation').transaction(r=>{
-            if(!r)return{brierSum:brier,marketCount:1};
-            return{brierSum:(r.brierSum||0)+brier,marketCount:(r.marketCount||0)+1};
+            if(!r)return{accuracySum:accuracy,marketCount:1};
+            return{accuracySum:(r.accuracySum||0)+accuracy,marketCount:(r.marketCount||0)+1};
           });
         }
       });
@@ -422,9 +427,34 @@ function App(){
     setToast(`Resolved ${outcome.toUpperCase()}! Payouts sent.`);
   };
 
+  /* Phase 6: verifier denies — clears pending, notifies creator, reopens trading */
+  const denyResolution=(mktId)=>{
+    const m=markets[mktId];
+    db.ref('markets/'+mktId+'/pendingResolution').set(null);
+    /* Notify the creator that verification was denied */
+    if(m){
+      db.ref('user_trades').once('value').then(s=>{
+        if(!s.exists())return;
+        Object.entries(s.val()).forEach(([cUid,ud])=>{
+          if(ud.name===m.creator){
+            db.ref('notifications/'+cUid).push({
+              type:'verification_denied',
+              marketId:mktId,
+              title:m.title,
+              message:`Your resolution claim for "${m.title}" was denied by the verifier. You may submit a new claim.`,
+              read:false,
+              createdAt:Date.now()
+            });
+          }
+        });
+      });
+    }
+    setToast('Resolution denied. Creator has been notified and may re-submit.');
+  };
+
   /* Phase 6: dispute */
   const disputeResolution=(mktId,reason)=>{
-    db.ref('markets/'+mktId+'/dispute').set({filedBy:user.name,reason,filedAt:Date.now()});
+    db.ref('markets/'+mktId+'/dispute').set({reason,filedAt:Date.now()});
     setToast('Dispute filed. Governance panel notified.');
   };
 
@@ -475,8 +505,14 @@ function App(){
   const hasCharts=!!BarChart;
 
   /* Phase 4: reputation helpers */
-  const isSuperPredictor=(rep)=>rep&&rep.marketCount>=5&&(rep.brierSum/rep.marketCount)<0.10;
-  const repScore=(rep)=>rep&&rep.marketCount>0?((1-(rep.brierSum/rep.marketCount))*100).toFixed(0):null;
+  const isSuperPredictor=(rep)=>rep&&rep.marketCount>=5&&((rep.accuracySum||0)/rep.marketCount)>0.90;
+  const repScore=(rep)=>{
+    if(!rep||!rep.marketCount)return null;
+    /* Support both old brierSum and new accuracySum fields */
+    if(rep.accuracySum!=null)return((rep.accuracySum/rep.marketCount)*100).toFixed(0);
+    if(rep.brierSum!=null)return((1-(rep.brierSum/rep.marketCount))*100).toFixed(0);
+    return null;
+  };
 
   // ── Toast ──
   const Toast=()=>toast&&<div className="fixed top-20 right-4 z-[100] bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 text-sm toast-anim"><I.CheckCircle size={15} className="text-green-400"/>{toast}</div>;
@@ -649,7 +685,7 @@ function App(){
                 {disputeWindow&&hasTraded&&!showDisputeInput&&<button onClick={()=>setShowDisputeInput(true)} className="mt-2 text-xs text-red-600 flex items-center gap-1 hover:underline"><I.Flag size={12}/>Dispute this resolution (48h window)</button>}
                 {showDisputeInput&&<div className="mt-2 space-y-1"><input value={disputeReason} onChange={e=>setDisputeReason(e.target.value)} placeholder="Reason for dispute..." className="w-full border rounded px-2 py-1 text-xs outline-none"/><div className="flex gap-2"><button onClick={()=>{if(disputeReason.trim())disputeResolution(selMkt,disputeReason);setShowDisputeInput(false)}} className="bg-red-600 text-white text-xs px-2 py-1 rounded">Submit</button><button onClick={()=>setShowDisputeInput(false)} className="text-xs text-gray-500">Cancel</button></div></div>}
               </div>}
-              {disputed&&!res&&<div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 text-sm"><p className="font-medium text-red-800">Dispute filed by {disputed.filedBy}: "{disputed.reason}"</p></div>}
+              {disputed&&!res&&<div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 text-sm"><p className="font-medium text-red-800">Dispute filed: "{disputed.reason}"</p></div>}
               {deadlinePassed&&<div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3 text-sm flex items-center gap-2"><I.AlertCircle size={14} className="text-orange-500"/><p className="font-medium text-orange-800">Deadline has passed ({m.deadline}). This market should be resolved.</p></div>}
               <div className="mb-4">
                 {hasVoted?<><div className="flex justify-between mb-1"><span className="text-lg font-bold text-green-600">YES {pct(p)}</span><span className="text-lg font-bold text-red-500">NO {pct(1-p)}</span></div>
@@ -692,12 +728,20 @@ function App(){
             {pending&&!res&&!disputed&&<div className="bg-gray-50 rounded-xl border p-4"><p className="text-xs text-gray-500 text-center">Trading paused — resolution pending verification.</p></div>}
             {isCr&&!res&&!pending&&!disputed&&<div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
               <div className="flex items-center gap-2 mb-2"><I.Lock size={13} className="text-amber-600"/><span className="text-xs font-semibold text-amber-800">Creator Controls</span></div>
-              <button onClick={()=>setShowResolve({id:selMkt,...m})} className="w-full bg-amber-600 text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-1"><I.Unlock size={13}/>Claim Resolution</button>
+              <p className="text-xs text-gray-600 mb-2">Choose the outcome for this market:</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={()=>claimResolution(selMkt,"yes")} className="bg-green-50 border-2 border-green-300 rounded-xl p-3 text-center hover:bg-green-100 flex flex-col items-center gap-1"><I.CheckCircle size={18} className="text-green-600"/><p className="font-bold text-green-700 text-sm">YES</p></button>
+                <button onClick={()=>claimResolution(selMkt,"no")} className="bg-red-50 border-2 border-red-300 rounded-xl p-3 text-center hover:bg-red-100 flex flex-col items-center gap-1"><I.X size={18} className="text-red-500"/><p className="font-bold text-red-600 text-sm">NO</p></button>
+              </div>
+              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1"><I.Shield size={11}/>{m.resolutionVerifier} must verify before payouts.</p>
             </div>}
             {isVerifier&&pending&&!res&&!disputed&&<div className="bg-indigo-50 rounded-xl border border-indigo-200 p-4">
               <div className="flex items-center gap-2 mb-2"><I.Shield size={13} className="text-indigo-600"/><span className="text-xs font-semibold text-indigo-800">Verifier Controls</span></div>
               <p className="text-xs text-indigo-600 mb-2">Creator claimed: <span className="font-bold">{pending.outcome?.toUpperCase()}</span></p>
-              <button onClick={()=>confirmResolution(selMkt,pending.outcome)} className="w-full bg-indigo-600 text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-1"><I.CheckCircle size={13}/>Confirm Verification</button>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={()=>confirmResolution(selMkt,pending.outcome)} className="bg-indigo-600 text-white font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-1"><I.CheckCircle size={13}/>Confirm</button>
+                <button onClick={()=>denyResolution(selMkt)} className="bg-red-100 text-red-700 font-medium py-2 rounded-lg text-sm flex items-center justify-center gap-1 border border-red-300 hover:bg-red-200"><I.XCircle size={13}/>Deny</button>
+              </div>
             </div>}
           </div>
         </div>
@@ -1078,14 +1122,17 @@ function App(){
               <div className="flex-1">
                 {n.type==='verifier_assigned'&&<div className="flex items-center gap-1.5 mb-1"><I.UserCheck size={14} className="text-green-600"/><span className="text-xs font-semibold text-green-700">Assigned as Verifier</span></div>}
                 {n.type==='verify_resolution'&&<div className="flex items-center gap-1.5 mb-1"><I.Shield size={14} className="text-indigo-600"/><span className="text-xs font-semibold text-indigo-700">Verification Required</span></div>}
+                {n.type==='verification_denied'&&<div className="flex items-center gap-1.5 mb-1"><I.XCircle size={14} className="text-red-500"/><span className="text-xs font-semibold text-red-700">Verification Denied</span></div>}
                 {n.type==='deadline_reached'&&<div className="flex items-center gap-1.5 mb-1"><I.Clock size={14} className="text-orange-500"/><span className="text-xs font-semibold text-orange-700">Deadline Reached</span></div>}
                 <p className="text-sm text-gray-800">{n.message}</p>
                 <p className="text-xs text-gray-400 mt-1">{n.createdAt?new Date(n.createdAt).toLocaleString():""}</p>
               </div>
               <div className="flex gap-1.5">
                 {n.type==='verifier_assigned'&&n.marketId&&!n.read&&<button onClick={()=>{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}} className="text-xs bg-green-600 text-white px-2.5 py-1 rounded-lg">View Market</button>}
+                {n.type==='verification_denied'&&n.marketId&&!n.read&&<button onClick={()=>{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}} className="text-xs bg-amber-600 text-white px-2.5 py-1 rounded-lg">View Market</button>}
                 {n.type==='verify_resolution'&&n.marketId&&!n.read&&<>
-                  <button onClick={()=>{const mkt=markets[n.marketId];if(mkt&&mkt.pendingResolution&&!mkt.resolved&&!mkt.dispute){confirmResolution(n.marketId,mkt.pendingResolution.outcome);markNotifRead(n.id)}else{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}}} className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg flex items-center gap-1"><I.CheckCircle size={11}/>Confirm Verification</button>
+                  <button onClick={()=>{const mkt=markets[n.marketId];if(mkt&&mkt.pendingResolution&&!mkt.resolved&&!mkt.dispute){confirmResolution(n.marketId,mkt.pendingResolution.outcome);markNotifRead(n.id)}else{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}}} className="text-xs bg-indigo-600 text-white px-2.5 py-1 rounded-lg flex items-center gap-1"><I.CheckCircle size={11}/>Confirm</button>
+                  <button onClick={()=>{const mkt=markets[n.marketId];if(mkt&&mkt.pendingResolution&&!mkt.resolved&&!mkt.dispute){denyResolution(n.marketId);markNotifRead(n.id)}else{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}}} className="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-lg flex items-center gap-1 border border-red-300"><I.XCircle size={11}/>Deny</button>
                   <button onClick={()=>{markNotifRead(n.id);setSelMkt(n.marketId);setView("detail")}} className="text-xs bg-gray-200 text-gray-700 px-2.5 py-1 rounded-lg">Review</button>
                 </>}
                 {!n.read&&<button onClick={()=>markNotifRead(n.id)} className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1">Dismiss</button>}
