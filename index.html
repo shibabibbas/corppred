@@ -327,7 +327,7 @@ function App(){
 
   const trade=(mktId,outcome,shares)=>{
     const m=markets[mktId];if(!m||m.resolved!=null)return;
-    if(user&&(user.name===m.creator||user.loginId===m.resolutionVerifier)){setToast("Restricted: you cannot trade in this market.");return}
+    if(user&&(user.name===m.creator||user.loginId===m.resolutionVerifier||user.name===m.resolutionVerifier)){setToast("Restricted: you cannot trade in this market.");return}
     const q=m.q||[0,0];
     const{newQ,cost}=LMSR.buy(q,outcome,shares);
     if(cost>credits){setToast("Insufficient credits!");return}
@@ -376,23 +376,13 @@ function App(){
   const claimResolution=(mktId,outcome)=>{
     const m=markets[mktId];
     db.ref('markets/'+mktId+'/pendingResolution').set({outcome,claimedBy:user.name,claimedAt:Date.now()});
-    /* Send notification to verifier account */
+    /* Send notification to verifier account — search by loginId first, fallback to name */
     if(m&&m.resolutionVerifier){
+      const notif={type:'verify_resolution',marketId:mktId,title:m.title,outcome,claimedBy:user.name,message:`Please verify resolution for "${m.title}" — claimed ${outcome.toUpperCase()} by ${user.name}`,read:false,createdAt:Date.now()};
+      const sendToMatches=(snap)=>{if(snap.exists())Object.keys(snap.val()).forEach(vUid=>db.ref('notifications/'+vUid).push(notif))};
       db.ref('user_trades').orderByChild('loginId').equalTo(m.resolutionVerifier).once('value').then(s=>{
-        if(s.exists()){
-          Object.keys(s.val()).forEach(vUid=>{
-            db.ref('notifications/'+vUid).push({
-              type:'verify_resolution',
-              marketId:mktId,
-              title:m.title,
-              outcome,
-              claimedBy:user.name,
-              message:`Please verify resolution for "${m.title}" — claimed ${outcome.toUpperCase()} by ${user.name}`,
-              read:false,
-              createdAt:Date.now()
-            });
-          });
-        }
+        if(s.exists()){sendToMatches(s)}
+        else{db.ref('user_trades').orderByChild('name').equalTo(m.resolutionVerifier).once('value').then(sendToMatches)}
       });
     }
     setShowResolve(null);setToast('Resolution claimed. Verifier has been notified.');
@@ -461,7 +451,7 @@ function App(){
   /* Phase 3: submit first estimate — auto-stakes tokens based on estimate */
   const submitEstimate=(mktId,estimate)=>{
     const em=markets[mktId];
-    if(user&&em&&(user.name===em.creator||user.loginId===em.resolutionVerifier)){setToast("Restricted: you cannot participate in this market.");setShowEstimate(false);return}
+    if(user&&em&&(user.name===em.creator||user.loginId===em.resolutionVerifier||user.name===em.resolutionVerifier)){setToast("Restricted: you cannot participate in this market.");setShowEstimate(false);return}
     db.ref('user_trades/'+uid.current+'/firstEstimates/'+mktId).set({estimate,submittedAt:Date.now()});
     setFirstEstimates(fe=>({...fe,[mktId]:{estimate,submittedAt:Date.now()}}));
     setShowEstimate(false);
@@ -493,7 +483,7 @@ function App(){
   const openDetail=(mktId)=>{
     setSelMkt(mktId);
     const m=markets[mktId];
-    const isRestricted=user&&(user.name===(m?.creator)||user.loginId===(m?.resolutionVerifier));
+    const isRestricted=user&&(user.name===(m?.creator)||user.loginId===(m?.resolutionVerifier)||user.name===(m?.resolutionVerifier));
     if(!firstEstimates[mktId]&&!isRestricted&&m&&!m.resolved){
       setShowEstimate(true);
     }
@@ -606,7 +596,7 @@ function App(){
     const q=m.q||[0,0];const p=LMSR.price(q,0);const res=m.resolved!=null;
     const pending=m.pendingResolution&&!m.resolved&&!m.dispute;
     const disputed=m.dispute&&!m.resolved;
-    const isRestrictedCard=user&&(user.name===(m?.creator)||user.loginId===(m?.resolutionVerifier));
+    const isRestrictedCard=user&&(user.name===(m?.creator)||user.loginId===(m?.resolutionVerifier)||user.name===(m?.resolutionVerifier));
     const hasVoted=!!firstEstimates[m.id]||res||isRestrictedCard;
     return(
       <div onClick={()=>openDetail(m.id)} className={`bg-white rounded-xl border hover:shadow-md hover:border-indigo-200 cursor-pointer ${res?"opacity-70":""}`}>
@@ -657,7 +647,7 @@ function App(){
     const q=m.q||[0,0];const p=LMSR.price(q,0);const res=!!m.resolved;
     const myP=positions.filter(x=>x.marketId===selMkt);const myT=tradeHistory.filter(x=>x.marketId===selMkt);
     const isCr=m.creator===user?.name;
-    const isVerifier=m.resolutionVerifier===user?.loginId;
+    const isVerifier=m.resolutionVerifier&&(m.resolutionVerifier===user?.loginId||m.resolutionVerifier===user?.name);
     const isRestricted=isCr||isVerifier;
     const pending=m.pendingResolution;
     const disputed=m.dispute;
